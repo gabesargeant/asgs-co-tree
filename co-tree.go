@@ -1,22 +1,24 @@
 package main
 
 import (
+	"bufio"
+	"encoding/csv"
 	"flag"
 	"fmt"
 	"os"
+
 )
 
-
 //AsgsRegionNode One region in all the regions, Let the nodes begin!
-// This is a doubly linked node. ie it points up and down. 
+// This is a doubly linked node. ie it points up and down.
 // I reserve the right to decide if I'm going to change this.
-type AsgsRegionNode struct{
-	RegionID string
-	RegionName string
-	LevelType string
-	LevelIDName string
+type AsgsRegionNode struct {
+	RegionID       string
+	RegionName     string
+	LevelType      string
+	LevelIDName    string
 	ParentRegionID *AsgsRegionNode
-	ChildRegions []*AsgsRegionNode
+	ChildRegions   []*AsgsRegionNode
 }
 
 //Arguments for the program
@@ -25,25 +27,37 @@ type Arguments struct {
 	OutputDir *string
 }
 
-func main(){
- //establish args.
- //fetch them//
-  fmt.Print("Start");
-  
-  args := setArgs()
-  flag.Parse();
+func main() {
+	//establish args.
+	//fetch them//
+	fmt.Print("Start")
 
-  if *args.InputFile == "" {
-	  fmt.Print("No input specified.")
-	  os.Exit(9)
-  }
+	args := setArgs()
+	flag.Parse()
 
-  getFile(*args.InputFile)
+	if *args.InputFile == "" {
+		fmt.Print("No input specified.")
+		os.Exit(9)
+	}
+
+	getFile(*args.InputFile)
 
 }
 
-func readCSV(file os.File){
+func readCSV(file *os.File) {
+
+	br := bufio.NewReader(file)
+	r := csv.NewReader(br)
+
+	firstLine, err := r.Read()
+	if err != nil {
+		panic(err)
+	}
+
+	headMap := getHeaderMap(firstLine)
 	
+	fmt.Printf("%s", headMap)
+
 }
 
 func getFile(file string) *os.File {
@@ -70,13 +84,12 @@ func setArgs() Arguments {
 
 //cmdline args, input file, output location.
 
-//structures. 
+//structures.
 
 //Australia,
 //States
 //SA4
 //SA3
 //SA2
-//SA1 -- // CED  // SED
+//SA1
 //MB -- LGA -- POA -- SSC
-
