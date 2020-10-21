@@ -38,16 +38,23 @@ func main(){
 	  os.Exit(9)
   }
 
-  readFile(buildFile(*args.InputFile))
+  getFile(*args.InputFile)
 
 }
 
-func buildFile(filePath string) string {
-	s:= "x"
-	return s
+func readCSV(file os.File){
+	
 }
 
-func readFile(file string){
+func getFile(file string) *os.File {
+
+	fmt.Printf("Attempting to read %s \n", file)
+	f, err := os.Open(file)
+
+	if err != nil {
+		panic(err)
+	}
+	return f
 
 }
 
