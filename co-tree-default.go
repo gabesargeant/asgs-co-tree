@@ -12,12 +12,12 @@ import (
 // This is a doubly linked node. ie it points up and down.
 // I reserve the right to decide if I'm going to change this.
 type AsgsRegionNode struct {
-	RegionID       string
-	RegionName     string
-	LevelType      string
-	LevelIDName    string
-	ParentRegionID *AsgsRegionNode
-	ChildRegions   []*AsgsRegionNode
+	RegionID      string 
+	RegionName    string
+	LevelType     string
+	LevelIDName   string
+	ParentRegions []*AsgsRegionNode
+	ChildRegions  []*AsgsRegionNode
 }
 
 //LevelName, Level Code
@@ -34,8 +34,24 @@ var levels = map[string]map[string]AsgsRegionNode{
 	"SSC":   {},
 }
 
-//Important to go from ground up,
-//as each 'higher' region will require the lower to be there to link it.
+func mergeLevels() map[string]AsgsRegionNode {
+	mp := make(map[string]AsgsRegionNode)
+	for k, v := range levels {
+		fmt.Println("adding " + k)
+		for kk, vv := range v {
+			mp[kk] = vv
+		}
+
+	}
+	fmt.Println(len(mp))
+	return mp
+}
+
+//The order of regions in this array is significant.
+//I need to build the nodes from the MeshBlocks up.
+//as each 'higher' region will require the lower to be there
+//to link it. And each child gets linked it's parent when
+//its parent gets its child.
 var levelSequence = []string{
 	"MB",
 	"SA1",
@@ -65,7 +81,7 @@ var levelCodeMap = map[string]string{
 
 var levelNameMap = map[string]string{
 
-	"MB":    "MB_NAME_2016",
+	"MB":    "MB_CATEGORY_NAME_2016",
 	"SA1":   "SA1_NAME_2016",
 	"SA2":   "SA2_NAME_2016",
 	"SA3":   "SA3_NAME_2016",
@@ -141,9 +157,9 @@ func getHeaderMap(firstLine []string) map[string]int {
 		}
 	}
 
-	for k, v := range m {
-		fmt.Printf("Column: %s ,  Position: %d \n", k, v)
-	}
+	// for k, v := range m {
+	// 	fmt.Printf("Column: %s ,  Position: %d \n", k, v)
+	// }
 
 	return m
 }
@@ -181,7 +197,12 @@ func buildLevels(headerMap map[string]int, r *csv.Reader) {
 			//Add child element
 
 			child := childLevel[currentLevel]
+			// if currentLevel == "SA1" {
+			// 	fmt.Println("child : " + child)
+			// }
+
 			if child == "" {
+				levels[currentLevel][iLevelCode] = region
 				continue
 			}
 
@@ -191,7 +212,12 @@ func buildLevels(headerMap map[string]int, r *csv.Reader) {
 
 			childRegion := levels[child][childRegionCode]
 
-			childRegion.ParentRegionID = &region
+			// if child == "MB" {
+			// 	fmt.Print("childRegion")
+			// 	fmt.Println(childRegion)
+			// }
+
+			childRegion.ParentRegions = append(childRegion.ParentRegions, &region)
 
 			region.ChildRegions = append(region.ChildRegions, &childRegion)
 
