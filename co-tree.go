@@ -6,20 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-
 )
-
-//AsgsRegionNode One region in all the regions, Let the nodes begin!
-// This is a doubly linked node. ie it points up and down.
-// I reserve the right to decide if I'm going to change this.
-type AsgsRegionNode struct {
-	RegionID       string
-	RegionName     string
-	LevelType      string
-	LevelIDName    string
-	ParentRegionID *AsgsRegionNode
-	ChildRegions   []*AsgsRegionNode
-}
 
 //Arguments for the program
 type Arguments struct {
@@ -30,7 +17,7 @@ type Arguments struct {
 func main() {
 	//establish args.
 	//fetch them//
-	fmt.Print("Start")
+	fmt.Println("Start")
 
 	args := setArgs()
 	flag.Parse()
@@ -40,7 +27,8 @@ func main() {
 		os.Exit(9)
 	}
 
-	getFile(*args.InputFile)
+	f := getFile(*args.InputFile)
+	readCSV(f)
 
 }
 
@@ -55,8 +43,27 @@ func readCSV(file *os.File) {
 	}
 
 	headMap := getHeaderMap(firstLine)
-	
-	fmt.Printf("%s", headMap)
+
+	buildLevels(headMap, r)
+
+	obj := levels["STATE"]
+	fmt.Println(len(obj))
+	aust := levels["AUS"]["AUS"]
+
+	printLevels(aust.ChildRegions)
+
+}
+
+//DFS
+func printLevels(l []*AsgsRegionNode) {
+
+	for _, v := range l {
+		 
+		fmt.Println("region :" + v.RegionName +", level :" + v.LevelIDName)
+		printLevels(v.ChildRegions)
+
+
+	}
 
 }
 
@@ -80,16 +87,4 @@ func setArgs() Arguments {
 	return a
 }
 
-//
-
-//cmdline args, input file, output location.
-
-//structures.
-
-//Australia,
-//States
-//SA4
-//SA3
-//SA2
-//SA1
-//MB -- LGA -- POA -- SSC
+//TODO protobuff the output.

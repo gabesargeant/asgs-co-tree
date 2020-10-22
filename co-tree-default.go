@@ -1,7 +1,106 @@
 package main
 
+import (
+	"encoding/csv"
+	"fmt"
+	"io"
+)
 
-var asgsRegionArray = []string{"MB_CODE_2016", "MB_CATEGORY_NAME_2016",
+//import ("fmt")
+
+//AsgsRegionNode One region in all the regions, Let the nodes begin!
+// This is a doubly linked node. ie it points up and down.
+// I reserve the right to decide if I'm going to change this.
+type AsgsRegionNode struct {
+	RegionID       string
+	RegionName     string
+	LevelType      string
+	LevelIDName    string
+	ParentRegionID *AsgsRegionNode
+	ChildRegions   []*AsgsRegionNode
+}
+
+//LevelName, Level Code
+var levels = map[string]map[string]AsgsRegionNode{
+	"MB":    {},
+	"SA1":   {},
+	"SA2":   {},
+	"SA3":   {},
+	"SA4":   {},
+	"STATE": {},
+	"AUS":   {},
+	"LGA":   {},
+	"POA":   {},
+	"SSC":   {},
+}
+
+//Important to go from ground up,
+//as each 'higher' region will require the lower to be there to link it.
+var levelSequence = []string{
+	"MB",
+	"SA1",
+	"SA2",
+	"SA3",
+	"SA4",
+	"STATE",
+	"AUS",
+	"LGA",
+	"POA",
+	"SSC",
+}
+
+var levelCodeMap = map[string]string{
+
+	"MB":    "MB_CODE_2016",
+	"SA1":   "SA1_MAINCODE_2016",
+	"SA2":   "SA2_MAINCODE_2016",
+	"SA3":   "SA3_CODE_2016",
+	"SA4":   "SA4_CODE_2016",
+	"STATE": "STATE_CODE_2016",
+	"AUS":   "AUS_CODE_2016",
+	"LGA":   "LGA_CODE_2020",
+	"POA":   "POA_CODE_2016",
+	"SSC":   "SSC_CODE_2016",
+}
+
+var levelNameMap = map[string]string{
+
+	"MB":    "MB_NAME_2016",
+	"SA1":   "SA1_NAME_2016",
+	"SA2":   "SA2_NAME_2016",
+	"SA3":   "SA3_NAME_2016",
+	"SA4":   "SA4_NAME_2016",
+	"STATE": "STATE_NAME_2016",
+	"AUS":   "AUS_NAME_2016",
+	"LGA":   "LGA_NAME_2020",
+	"POA":   "POA_NAME_2016",
+	"SSC":   "SSC_NAME_2016",
+}
+
+//Australia,
+//States
+//SA4
+//SA3
+//SA2
+//SA1
+//MB -- LGA -- POA -- SSC
+//ChildLevles Key = the current region, value = it's child region
+var childLevel = map[string]string{
+	"MB":    "",
+	"SA1":   "MB",
+	"SA2":   "SA1",
+	"SA3":   "SA2",
+	"SA4":   "SA3",
+	"STATE": "SA4",
+	"AUS":   "STATE",
+	"LGA":   "MB",
+	"POA":   "MB",
+	"SSC":   "MB",
+}
+
+var asgsRegionArray = []string{
+	"MB_CODE_2016",
+	"MB_CATEGORY_NAME_2016",
 	"SA1_MAINCODE_2016",
 	"SA1_NAME_2016",
 	"SA2_MAINCODE_2016",
@@ -42,5 +141,62 @@ func getHeaderMap(firstLine []string) map[string]int {
 		}
 	}
 
+	for k, v := range m {
+		fmt.Printf("Column: %s ,  Position: %d \n", k, v)
+	}
+
 	return m
+}
+
+func buildLevels(headerMap map[string]int, r *csv.Reader) {
+
+	//outter loop, read a row.
+	for {
+		row, err := r.Read()
+		if err == io.EOF {
+			//for the last record, write the buffer without the commaNewLine
+			break
+		}
+
+		for _, currentLevel := range levelSequence {
+
+			levelCode := levelCodeMap[currentLevel]
+			levelName := levelNameMap[currentLevel]
+
+			//instanceLevelCode
+			iLevelCode := row[headerMap[levelCode]]
+			iLevelName := row[headerMap[levelName]]
+
+			region := levels[currentLevel][iLevelCode]
+
+			if region.RegionID == "" {
+				//fmt.Println("Empty Region, creating ...")
+				region.LevelIDName = levelCode
+				region.LevelType = currentLevel
+				region.RegionName = iLevelName
+				region.RegionID = iLevelCode
+
+			}
+
+			//Add child element
+
+			child := childLevel[currentLevel]
+			if child == "" {
+				continue
+			}
+
+			childLevelCode := levelCodeMap[child]
+
+			childRegionCode := row[headerMap[childLevelCode]]
+
+			childRegion := levels[child][childRegionCode]
+
+			childRegion.ParentRegionID = &region
+
+			region.ChildRegions = append(region.ChildRegions, &childRegion)
+
+			levels[currentLevel][iLevelCode] = region
+
+		}
+	}
 }
