@@ -63,26 +63,30 @@ func readCSV(file *os.File) {
 }
 
 func writeOutFile(region map[string]AsgsRegionNode) {
-
-	var jsonData []byte
-	jsonData, err := json.Marshal(&region)
-	fmt.Println(len(jsonData))
-	fmt.Println("length of json data")
 	dataFile, err := os.Create("asgsjsonFile.json")
-
+	bw := bufio.NewWriter(dataFile)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(9)
 	}
 
-	bw := bufio.NewWriter(dataFile)
-	bw.Write(jsonData)
-	bw.Flush()
+	for _, v := range region {
+
+		var jsonData []byte
+		jsonData, err := json.MarshalIndent(v, "", "\t")
+		//fmt.Println(len(jsonData))
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(9)
+		}
+		bw.Write(jsonData)
+		bw.Flush()
+
+	}
+
 	dataFile.Close()
 
 }
-
-
 
 //DFS
 func printLevels(l []*AsgsRegionNode) {

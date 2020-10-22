@@ -12,7 +12,7 @@ import (
 // This is a doubly linked node. ie it points up and down.
 // I reserve the right to decide if I'm going to change this.
 type AsgsRegionNode struct {
-	RegionID      string 
+	RegionID      string
 	RegionName    string
 	LevelType     string
 	LevelIDName   string
