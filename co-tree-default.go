@@ -16,10 +16,9 @@ type AsgsRegionNode struct {
 	RegionName    string
 	LevelType     string
 	LevelIDName   string
-	ParentRegions []*AsgsRegionNode
-	ChildRegions  []*AsgsRegionNode
+	ParentRegions map[string]string 
+	ChildRegions  map[string]string
 }
-
 //LevelName, Level Code
 var levels = map[string]map[string]AsgsRegionNode{
 	"MB":    {},
@@ -35,9 +34,12 @@ var levels = map[string]map[string]AsgsRegionNode{
 }
 
 func mergeLevels() map[string]AsgsRegionNode {
+
 	mp := make(map[string]AsgsRegionNode)
 	for k, v := range levels {
-		fmt.Println("adding " + k)
+
+		fmt.Printf("Region Type: %s, size: %d \n", k, len(v))
+
 		for kk, vv := range v {
 			mp[kk] = vv
 		}
@@ -191,6 +193,8 @@ func buildLevels(headerMap map[string]int, r *csv.Reader) {
 				region.LevelType = currentLevel
 				region.RegionName = iLevelName
 				region.RegionID = iLevelCode
+				region.ChildRegions = make(map[string]string)
+				region.ParentRegions = make(map[string]string)
 
 			}
 
@@ -212,14 +216,18 @@ func buildLevels(headerMap map[string]int, r *csv.Reader) {
 
 			childRegion := levels[child][childRegionCode]
 
+			if childRegion.ParentRegions == nil {				
+				childRegion.ParentRegions = make(map[string]string)
+			}
+
 			// if child == "MB" {
 			// 	fmt.Print("childRegion")
 			// 	fmt.Println(childRegion)
 			// }
 
-			childRegion.ParentRegions = append(childRegion.ParentRegions, &region)
+			childRegion.ParentRegions[region.RegionID] = region.RegionName
 
-			region.ChildRegions = append(region.ChildRegions, &childRegion)
+			region.ChildRegions[childRegion.RegionID] = childRegion.RegionName
 
 			levels[currentLevel][iLevelCode] = region
 

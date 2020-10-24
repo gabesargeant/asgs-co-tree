@@ -49,10 +49,10 @@ func readCSV(file *os.File) {
 
 	//aust := levels["AUS"]["AUS"]
 
-	mb := levels["MB"]
+	// mb := levels["MB"]
 
-	fmt.Println("No MB Levels ")
-	fmt.Println(len(mb))
+	// fmt.Println("No MB Levels ")
+	// fmt.Println(len(mb))
 
 	//printLevels(aust.ChildRegions)
 
@@ -63,6 +63,7 @@ func readCSV(file *os.File) {
 }
 
 func writeOutFile(region map[string]AsgsRegionNode) {
+
 	dataFile, err := os.Create("asgsjsonFile.json")
 	bw := bufio.NewWriter(dataFile)
 	if err != nil {
@@ -70,37 +71,45 @@ func writeOutFile(region map[string]AsgsRegionNode) {
 		os.Exit(9)
 	}
 
-	for _, v := range region {
+	// for _, v := range region {
 
-		var jsonData []byte
-		jsonData, err := json.MarshalIndent(v, "", "\t")
-		//fmt.Println(len(jsonData))
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(9)
-		}
-		bw.Write(jsonData)
-		bw.Flush()
+	// 	var jsonData []byte
+	// 	jsonData, err := json.MarshalIndent(v, "", "\t")
+	// 	//fmt.Println(len(jsonData))
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 		os.Exit(9)
+	// 	}
+	// 	bw.Write(jsonData)
+	// 	bw.Flush()
 
+	//var jsonData []byte
+	jsonData, err := json.MarshalIndent(&region, "", "\t")
+	//fmt.Println(len(jsonData))
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(9)
 	}
+	bw.Write(jsonData)
+	bw.Flush()
 
 	dataFile.Close()
 
 }
 
 //DFS
-func printLevels(l []*AsgsRegionNode) {
+// func printLevels(l []*AsgsRegionNode) {
 
-	for _, v := range l {
+// 	for _, v := range l {
 
-		fmt.Println("region :" + v.RegionName + ", level :" + v.LevelIDName)
-		if len(v.ChildRegions) != 0 {
-			printLevels(v.ChildRegions)
-		}
+// 		fmt.Println("region :" + v.RegionName + ", level :" + v.LevelIDName)
+// 		if len(v.ChildRegions) != 0 {
+// 			printLevels(v.ChildRegions)
+// 		}
 
-	}
+// 	}
 
-}
+// }
 
 func getFile(file string) *os.File {
 
