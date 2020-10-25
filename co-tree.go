@@ -58,11 +58,13 @@ func readCSV(file *os.File) {
 
 	mp := mergeLevels()
 
-	writeOutFile(mp)
+	outNodes := createOutputRegions(mp)
+
+	writeOutFile(outNodes)
 
 }
 
-func writeOutFile(region map[string]AsgsRegionNode) {
+func writeOutFile(region map[string]OutputAsgsRegionNode) {
 
 	dataFile, err := os.Create("asgsjsonFile.json")
 	bw := bufio.NewWriter(dataFile)
@@ -96,20 +98,6 @@ func writeOutFile(region map[string]AsgsRegionNode) {
 	dataFile.Close()
 
 }
-
-//DFS
-// func printLevels(l []*AsgsRegionNode) {
-
-// 	for _, v := range l {
-
-// 		fmt.Println("region :" + v.RegionName + ", level :" + v.LevelIDName)
-// 		if len(v.ChildRegions) != 0 {
-// 			printLevels(v.ChildRegions)
-// 		}
-
-// 	}
-
-// }
 
 func getFile(file string) *os.File {
 

@@ -16,9 +16,31 @@ type AsgsRegionNode struct {
 	RegionName    string
 	LevelType     string
 	LevelIDName   string
-	ParentRegions map[string]string 
+	ParentRegions []*AsgsRegionNode
+	ChildRegions  []*AsgsRegionNode
+}
+
+
+
+//OutputAsgsRegionNode is the final output format for each node.
+type OutputAsgsRegionNode struct {
+	RegionID      string
+	RegionName    string
+	LevelType     string
+	LevelIDName   string
+	ParentRegions []*ParentRegion
 	ChildRegions  map[string]string
 }
+
+//ParentRegion lighter parent structure
+type ParentRegion struct {
+	RegionID string
+	RegionName string
+	LevelType string
+	ParentRegions []*ParentRegion
+}
+
+
 //LevelName, Level Code
 var levels = map[string]map[string]AsgsRegionNode{
 	"MB":    {},
@@ -193,8 +215,8 @@ func buildLevels(headerMap map[string]int, r *csv.Reader) {
 				region.LevelType = currentLevel
 				region.RegionName = iLevelName
 				region.RegionID = iLevelCode
-				region.ChildRegions = make(map[string]string)
-				region.ParentRegions = make(map[string]string)
+				//region.ChildRegions = make(map[string]string)
+				//region.ParentRegions = make(map[string]string)
 
 			}
 
@@ -216,21 +238,71 @@ func buildLevels(headerMap map[string]int, r *csv.Reader) {
 
 			childRegion := levels[child][childRegionCode]
 
-			if childRegion.ParentRegions == nil {				
-				childRegion.ParentRegions = make(map[string]string)
-			}
+			// if childRegion.ParentRegions == nil {				
+			// 	childRegion.ParentRegions = make(map[string]string)
+			// }
 
 			// if child == "MB" {
 			// 	fmt.Print("childRegion")
 			// 	fmt.Println(childRegion)
 			// }
 
-			childRegion.ParentRegions[region.RegionID] = region.RegionName
+			//childRegion.ParentRegions[region.RegionID] = region.RegionName
 
-			region.ChildRegions[childRegion.RegionID] = childRegion.RegionName
+			childRegion.ParentRegions = append(childRegion.ParentRegions, &region)
+
+			//region.ChildRegions[childRegion.RegionID] = childRegion.RegionName
+
+			region.ChildRegions = append(region.ChildRegions, &childRegion)
 
 			levels[currentLevel][iLevelCode] = region
 
 		}
 	}
+}
+
+
+func createOutputRegions(regions map[string]AsgsRegionNode) map[string]OutputAsgsRegionNode {
+
+	outNodes := make(map[string]OutputAsgsRegionNode)
+
+	for _,v := range regions {
+
+		out := OutputAsgsRegionNode{}
+		out.LevelType = v.LevelType
+		out.RegionID = v.RegionID
+		out.RegionName = v.RegionName
+
+		out.ChildRegions  = make(map[string]string)
+
+		for _, val := range v.ChildRegions {
+			out.ChildRegions[val.RegionID] = val.RegionName
+		}
+
+		out.ParentRegions = buildParentTree(v.ParentRegions, regions)
+		
+		outNodes[out.RegionID] = out;
+	}
+	return outNodes
+}
+
+func buildParentTree( parents []*AsgsRegionNode, regions map[string]AsgsRegionNode) []*ParentRegion{
+
+	prArr :=  make([]*ParentRegion, 0)
+	
+	//usually there's 1 parent
+	for _, v := range parents {
+		pr := &ParentRegion{}
+		pr.LevelType = v.LevelType
+		pr.RegionID = v.RegionName
+		pr.RegionName = v.RegionName
+		
+		//for each parent in v
+		pt := buildParentTree(v.ParentRegions, regions)
+		for _, val := range pt {
+			pr.ParentRegions = append(pr.ParentRegions, val )
+		}		
+		prArr = append(prArr, pr)
+	}
+	return prArr
 }
