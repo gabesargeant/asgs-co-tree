@@ -58,9 +58,9 @@ func readCSV(file *os.File) {
 
 	mp := mergeLevels()
 
-	outNodes := createOutputRegions(mp)
+	createOutputRegions(mp)
 
-	writeOutFile(outNodes)
+	
 
 }
 
@@ -73,27 +73,27 @@ func writeOutFile(region map[string]OutputAsgsRegionNode) {
 		os.Exit(9)
 	}
 
-	// for _, v := range region {
+	for _, v := range region {
 
-	// 	var jsonData []byte
-	// 	jsonData, err := json.MarshalIndent(v, "", "\t")
-	// 	//fmt.Println(len(jsonData))
-	// 	if err != nil {
-	// 		fmt.Println(err)
-	// 		os.Exit(9)
-	// 	}
-	// 	bw.Write(jsonData)
-	// 	bw.Flush()
-
-	//var jsonData []byte
-	jsonData, err := json.MarshalIndent(&region, "", "\t")
-	//fmt.Println(len(jsonData))
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(9)
+		var jsonData []byte
+		jsonData, err := json.MarshalIndent(v, "", "\t")
+		//fmt.Println(len(jsonData))
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(9)
+		}
+		bw.Write(jsonData)
+		bw.Flush()
 	}
-	bw.Write(jsonData)
-	bw.Flush()
+	// //var jsonData []byte
+	// jsonData, err := json.MarshalIndent(&region, "", "\t")
+	// //fmt.Println(len(jsonData))
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	os.Exit(9)
+	// }
+	// bw.Write(jsonData)
+	// bw.Flush()
 
 	dataFile.Close()
 
@@ -114,8 +114,8 @@ func getFile(file string) *os.File {
 func setArgs() Arguments {
 	a := Arguments{}
 
-	a.InputFile = flag.String("i", "", "Input File for building tree")
-	a.OutputDir = flag.String("o", "./output/", "Output folder, if not set defaults to creating a folder ./output in pwd.")
+	a.InputFile = flag.String("i", "cat.csv", "Input File for building tree")
+	a.OutputDir = flag.String("o", "", "Output folder, if not set defaults to pwd ./ .")
 	return a
 }
 
