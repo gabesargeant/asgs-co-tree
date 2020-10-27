@@ -47,15 +47,6 @@ func readCSV(file *os.File) {
 
 	buildLevels(headMap, r)
 
-	//aust := levels["AUS"]["AUS"]
-
-	// mb := levels["MB"]
-
-	// fmt.Println("No MB Levels ")
-	// fmt.Println(len(mb))
-
-	//printLevels(aust.ChildRegions)
-
 	mp := mergeLevels()
 
 	createOutputRegions(mp)
@@ -77,7 +68,6 @@ func writeOutFile(region map[string]OutputAsgsRegionNode) {
 
 		var jsonData []byte
 		jsonData, err := json.MarshalIndent(v, "", "\t")
-		//fmt.Println(len(jsonData))
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(9)
@@ -85,15 +75,6 @@ func writeOutFile(region map[string]OutputAsgsRegionNode) {
 		bw.Write(jsonData)
 		bw.Flush()
 	}
-	// //var jsonData []byte
-	// jsonData, err := json.MarshalIndent(&region, "", "\t")
-	// //fmt.Println(len(jsonData))
-	// if err != nil {
-	// 	fmt.Println(err)
-	// 	os.Exit(9)
-	// }
-	// bw.Write(jsonData)
-	// bw.Flush()
 
 	dataFile.Close()
 
@@ -118,5 +99,3 @@ func setArgs() Arguments {
 	a.OutputDir = flag.String("o", "", "Output folder, if not set defaults to pwd ./ .")
 	return a
 }
-
-//TODO protobuff the output.

@@ -9,11 +9,9 @@ import (
 	"os"
 )
 
-//import ("fmt")
-
 //AsgsRegionNode One region in all the regions, Let the nodes begin!
 // This is a doubly linked node. ie it points up and down.
-// I reserve the right to decide if I'm going to change this.
+//Maps not arrays for the pointers, this to avoid duplicates
 type AsgsRegionNode struct {
 	RegionID      string
 	RegionName    string
@@ -184,10 +182,6 @@ func getHeaderMap(firstLine []string) map[string]int {
 		}
 	}
 
-	// for k, v := range m {
-	// 	fmt.Printf("Column: %s ,  Position: %d \n", k, v)
-	// }
-
 	return m
 }
 
@@ -213,7 +207,7 @@ func buildLevels(headerMap map[string]int, r *csv.Reader) {
 			region := levels[currentLevel][iLevelCode]
 
 			if region.RegionID == "" {
-				//fmt.Println("Empty Region, creating ...")
+		
 				region.LevelIDName = levelCode
 				region.LevelType = currentLevel
 				region.RegionName = iLevelName
@@ -224,11 +218,7 @@ func buildLevels(headerMap map[string]int, r *csv.Reader) {
 			}
 
 			//Add child element
-
 			child := childLevel[currentLevel]
-			// if currentLevel == "SA1" {
-			// 	fmt.Println("child : " + child)
-			// }
 
 			if child == "" {
 				levels[currentLevel][iLevelCode] = region
@@ -241,10 +231,12 @@ func buildLevels(headerMap map[string]int, r *csv.Reader) {
 
 			childRegion := levels[child][childRegionCode]
 	
+			//Establish Relationships
 			childRegion.ParentRegions[region.RegionID]=  &region
 
 			region.ChildRegions[childRegion.RegionID] = &childRegion
-
+			
+			//Set objects
 			levels[currentLevel][iLevelCode] = region
 			levels[child][childRegionCode] = childRegion
 
@@ -255,7 +247,6 @@ func buildLevels(headerMap map[string]int, r *csv.Reader) {
 
 func createOutputRegions(regions map[string]AsgsRegionNode)  {
 
-	//outNodes := make(map[string]OutputAsgsRegionNode)
 	fmt.Println("starting region output build")
 	for _,  v := range regions {
 
@@ -270,26 +261,18 @@ func createOutputRegions(regions map[string]AsgsRegionNode)  {
 			out.ChildRegions[val.RegionID] = val.RegionName
 		}
 
-		//fmt.Println(v.ParentRegions)
-
 		out.ParentRegions = buildParentTree(v.ParentRegions, regions)
 		
 		printRegion(out.RegionID, out)
 
-		//outNodes[out.RegionID] = out;
 	}
-	//return outNodes
+
 }
 
 func printRegion(id string, out OutputAsgsRegionNode){
 
 	outfolder := "./out/";
-	
-	// err := os.Mkdir(outfolder, 0777)
-	// if os.IsExist(err) == false {
-	//fmt.Println("Printing")
-	// }
-	
+
 	dataFile, err := os.Create(outfolder + id +".json")
 	bw := bufio.NewWriter(dataFile)
 	if err != nil {
@@ -299,7 +282,7 @@ func printRegion(id string, out OutputAsgsRegionNode){
 
 	var jsonData []byte
 	jsonData, err = json.MarshalIndent(out, "", "\t")
-		//fmt.Println(len(jsonData))
+	
 	if err != nil {
 			fmt.Println(err)
 			os.Exit(9)
@@ -307,19 +290,16 @@ func printRegion(id string, out OutputAsgsRegionNode){
 	bw.Write(jsonData)
 	bw.Flush()
 	dataFile.Close()
-	//fmt.Println("Print done.")
+
 }
 
 func buildParentTree( parents map[string]*AsgsRegionNode, regions map[string]AsgsRegionNode) map[string]*ParentRegion{
 	
 	prArr :=  make(map[string]*ParentRegion)
-	// fmt.Println("Parent Length")
-	// fmt.Println(len(parents))
 
 	//usually there's 1 parent
 	for _, v := range parents {
 		
-	//	fmt.Print(v)
 		pr := ParentRegion{}
 		pr.LevelType = v.LevelType
 		pr.RegionID = v.RegionName
