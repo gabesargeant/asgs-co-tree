@@ -269,9 +269,17 @@ func createOutputRegions(regions map[string]AsgsRegionNode)  {
 
 }
 
+func createOutDir(outDir string) {
+
+	err := os.Mkdir(outDir, 0777)
+	if os.IsNotExist(err) {
+		fmt.Printf("Error with creating output folder %s", err)
+	}
+}
+
 func printRegion(id string, out OutputAsgsRegionNode){
 
-	outfolder := "./out/";
+	
 
 	dataFile, err := os.Create(outfolder + id +".json")
 	bw := bufio.NewWriter(dataFile)

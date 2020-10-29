@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/csv"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -13,7 +12,11 @@ import (
 type Arguments struct {
 	InputFile *string
 	OutputDir *string
+	S3Bucket *string
 }
+
+//Global Variable!
+var outfolder string
 
 func main() {
 	//establish args.
@@ -28,8 +31,19 @@ func main() {
 		os.Exit(9)
 	}
 
-	f := getFile(*args.InputFile)
-	readCSV(f)
+	inputFile := getFile(*args.InputFile)
+
+	outfolder = *args.OutputDir
+	
+	createOutDir(outfolder); 
+	
+	readCSV(inputFile)	
+
+	if *args.S3Bucket != "" {
+		files := getFiles(outfolder)
+		uploadOutput(files, *args.S3Bucket)
+	}
+	
 
 }
 
@@ -55,31 +69,6 @@ func readCSV(file *os.File) {
 
 }
 
-func writeOutFile(region map[string]OutputAsgsRegionNode) {
-
-	dataFile, err := os.Create("asgsjsonFile.json")
-	bw := bufio.NewWriter(dataFile)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(9)
-	}
-
-	for _, v := range region {
-
-		var jsonData []byte
-		jsonData, err := json.MarshalIndent(v, "", "\t")
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(9)
-		}
-		bw.Write(jsonData)
-		bw.Flush()
-	}
-
-	dataFile.Close()
-
-}
-
 func getFile(file string) *os.File {
 
 	fmt.Printf("Attempting to read %s \n", file)
@@ -96,6 +85,7 @@ func setArgs() Arguments {
 	a := Arguments{}
 
 	a.InputFile = flag.String("i", "cat.csv", "Input File for building tree")
-	a.OutputDir = flag.String("o", "", "Output folder, if not set defaults to pwd ./ .")
+	a.OutputDir = flag.String("o", "./out/", "Output folder, if not set defaults to pwd ./out/ .")
+	a.S3Bucket = flag.String("s", "", "If not set, no upload attempted. Assumes sdk v2 configured")
 	return a
 }
