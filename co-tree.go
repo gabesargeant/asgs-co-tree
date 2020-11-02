@@ -63,8 +63,8 @@ func readCSV(file *os.File) {
 
 	mp := mergeLevels()
 
-	createOutputRegions(mp)
-
+	//createOutputRegions(mp)
+	summarizeRegions(mp)
 	
 
 }

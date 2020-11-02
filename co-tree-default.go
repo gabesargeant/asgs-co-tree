@@ -139,6 +139,17 @@ var childLevel = map[string]string{
 	"SSC":   "MB",
 }
 
+var skipLevel = map[string]string{
+	"MB":    "SKIP",
+	"SA1":   "SKIP",
+}
+
+var nonAsgsLevel = map[string]string{
+	"LGA":   "MB",
+	"POA":   "MB",
+	"SSC":   "MB",
+}
+
 var asgsRegionArray = []string{
 	"MB_CODE_2016",
 	"MB_CATEGORY_NAME_2016",
@@ -242,6 +253,34 @@ func buildLevels(headerMap map[string]int, r *csv.Reader) {
 
 		}
 	}
+}
+
+func 	summarizeRegions(regions map[string]AsgsRegionNode){
+	
+	fmt.Println("starting region output build")
+	for _,  v := range regions {
+
+		if (skipLevel[v.LevelType] == "SKIP"){
+			continue
+		}
+
+		out := OutputAsgsRegionNode{}
+		out.LevelType = v.LevelType
+		out.RegionID = v.RegionID
+		out.RegionName = v.RegionName
+		
+		out.ChildRegions  = make(map[string]string)
+
+		for _, val := range v.ChildRegions {
+			out.ChildRegions[val.RegionID] = val.RegionName
+		}
+
+		out.ParentRegions = buildParentTree(v.ParentRegions, regions)
+		
+		printRegion(out.RegionID, out)
+
+	}
+
 }
 
 
