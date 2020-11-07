@@ -77,7 +77,7 @@ func mergeLevels() map[string]AsgsRegionNode {
 //as each 'higher' region will require the lower to be there
 //to link it. And each child gets linked it's parent when
 //its parent gets its child.
-var levelSequence = []string{
+var asgsLevelSequence = []string{
 	"MB",
 	"SA1",
 	"SA2",
@@ -85,10 +85,17 @@ var levelSequence = []string{
 	"SA4",
 	"STATE",
 	"AUS",
+}
+
+var nonAsgsLevelSequence = []string{
+	"MB",
 	"LGA",
 	"POA",
 	"SSC",
+	"STATE",
+	"AUS",
 }
+
 
 var levelCodeMap = map[string]string{
 
@@ -126,12 +133,21 @@ var levelNameMap = map[string]string{
 //SA1
 //MB -- LGA -- POA -- SSC
 //ChildLevles Key = the current region, value = it's child region
-var childLevel = map[string]string{
+var asgsChildLevel = map[string]string{
 	"MB":    "",
 	"SA1":   "MB",
 	"SA2":   "SA1",
 	"SA3":   "SA2",
 	"SA4":   "SA3",
+	"STATE": "SA4",
+	"AUS":   "STATE",
+	"LGA":   "MB",
+	"POA":   "MB",
+	"SSC":   "MB",
+}
+//The many to many is a problem....hmm.	
+var nonAsgsChildLevel = map[string]string{
+	"MB":    "",
 	"STATE": "SA4",
 	"AUS":   "STATE",
 	"LGA":   "MB",
@@ -196,7 +212,7 @@ func getHeaderMap(firstLine []string) map[string]int {
 	return m
 }
 
-func buildLevels(headerMap map[string]int, r *csv.Reader) {
+func buildASGSLevels(headerMap map[string]int, r *csv.Reader) {
 
 	//outter loop, read a row.
 	for {
@@ -206,7 +222,66 @@ func buildLevels(headerMap map[string]int, r *csv.Reader) {
 			break
 		}
 
-		for _, currentLevel := range levelSequence {
+		for _, currentLevel := range asgsLevelSequence {
+
+			levelCode := levelCodeMap[currentLevel]
+			levelName := levelNameMap[currentLevel]
+
+			//instanceLevelCode
+			iLevelCode := row[headerMap[levelCode]]
+			iLevelName := row[headerMap[levelName]]
+
+			region := levels[currentLevel][iLevelCode]
+
+			if region.RegionID == "" {
+		
+				region.LevelIDName = levelCode
+				region.LevelType = currentLevel
+				region.RegionName = iLevelName
+				region.RegionID = iLevelCode
+				region.ChildRegions = make(map[string]*AsgsRegionNode)
+				region.ParentRegions = make(map[string]*AsgsRegionNode)
+
+			}
+
+			//Add child element
+			child := childLevel[currentLevel]
+
+			if child == "" {
+				levels[currentLevel][iLevelCode] = region
+				continue
+			}
+
+			childLevelCode := levelCodeMap[child]
+
+			childRegionCode := row[headerMap[childLevelCode]]
+
+			childRegion := levels[child][childRegionCode]
+	
+			//Establish Relationships
+			childRegion.ParentRegions[region.RegionID]=  &region
+
+			region.ChildRegions[childRegion.RegionID] = &childRegion
+			
+			//Set objects
+			levels[currentLevel][iLevelCode] = region
+			levels[child][childRegionCode] = childRegion
+
+		}
+	}
+}
+
+func buildNonASGSLevels(headerMap map[string]int, r *csv.Reader) {
+
+	//outter loop, read a row.
+	for {
+		row, err := r.Read()
+		if err == io.EOF {
+			//for the last record, write the buffer without the commaNewLine
+			break
+		}
+
+		for _, currentLevel := range nonAsgsLevelSequence {
 
 			levelCode := levelCodeMap[currentLevel]
 			levelName := levelNameMap[currentLevel]
