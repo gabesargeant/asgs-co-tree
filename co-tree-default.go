@@ -145,14 +145,14 @@ var asgsChildLevel = map[string]string{
 	"POA":   "MB",
 	"SSC":   "MB",
 }
-//The many to many is a problem....hmm.	
-var nonAsgsChildLevel = map[string]string{
-	"MB":    "",
-	"STATE": "SA4",
-	"AUS":   "STATE",
-	"LGA":   "MB",
-	"POA":   "MB",
-	"SSC":   "MB",
+//The many to many is a problem....hmm.		
+var nonAsgsChildLevel = map[string][]string{
+	"MB":  {},
+	"STATE": {"LGA","POA","SSC"},
+	"AUS":   {"STATE"},
+	"LGA":   {"MB"},
+	"POA":   {"MB"},
+	"SSC":	{"MB"},
 }
 
 var skipLevel = map[string]string{
@@ -245,7 +245,7 @@ func buildASGSLevels(headerMap map[string]int, r *csv.Reader) {
 			}
 
 			//Add child element
-			child := childLevel[currentLevel]
+			child := asgsChildLevel[currentLevel]
 
 			if child == "" {
 				levels[currentLevel][iLevelCode] = region
@@ -303,8 +303,11 @@ func buildNonASGSLevels(headerMap map[string]int, r *csv.Reader) {
 
 			}
 
+			//todo when my heads clear. 
+			//loop over nonAsgsChildLevel and for each, find the children and link the parents.
+
 			//Add child element
-			child := childLevel[currentLevel]
+			child := nonAsgsChildLevel[currentLevel]
 
 			if child == "" {
 				levels[currentLevel][iLevelCode] = region
