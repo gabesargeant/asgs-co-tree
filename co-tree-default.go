@@ -329,6 +329,7 @@ func buildNonASGSLevels(headerMap map[string]int, r *csv.Reader) {
 	}
 }
 
+
 func summarizeRegions(regions map[string]AsgsRegionNode) {
 
 	fmt.Println("starting region output build")
