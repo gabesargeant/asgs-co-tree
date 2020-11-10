@@ -12,7 +12,7 @@ import (
 type Arguments struct {
 	InputFile *string
 	OutputDir *string
-	S3Bucket *string
+	S3Bucket  *string
 }
 
 //Global Variable!
@@ -34,16 +34,15 @@ func main() {
 	inputFile := getFile(*args.InputFile)
 
 	outfolder = *args.OutputDir
-	
-	createOutDir(outfolder); 
-	
-	readCSV(inputFile)	
+
+	createOutDir(outfolder)
+
+	readCSV(inputFile)
 
 	if *args.S3Bucket != "" {
 		files := getFiles(outfolder)
 		uploadOutput(files, *args.S3Bucket)
 	}
-	
 
 }
 
@@ -59,13 +58,13 @@ func readCSV(file *os.File) {
 
 	headMap := getHeaderMap(firstLine)
 
-	buildLevels(headMap, r)
+	buildASGSLevels(headMap, r)
+	buildNonASGSLevels(headMap, r)
 
 	mp := mergeLevels()
 
 	//createOutputRegions(mp)
 	summarizeRegions(mp)
-	
 
 }
 

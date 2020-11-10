@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
-func getFiles(dir string) []string{
+func getFiles(dir string) []string {
 
 	fileInfos, err := ioutil.ReadDir(dir)
 
@@ -26,10 +26,9 @@ func getFiles(dir string) []string{
 
 	return filePaths
 
-	
 }
 
-func uploadOutput(outputfolder []string, s3BucketName string){
+func uploadOutput(outputfolder []string, s3BucketName string) {
 
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		//SharedConfigState: session.SharedConfigEnable,
@@ -38,12 +37,12 @@ func uploadOutput(outputfolder []string, s3BucketName string){
 
 	uploader := s3manager.NewUploader(sess)
 
-	for i, outputFile := range outputfolder{
+	for i, outputFile := range outputfolder {
 
 		if i > 0 && i%1000 == 0 {
-			percentUploaded := (len(outputfolder) / i ) * 100
+			percentUploaded := (len(outputfolder) / i) * 100
 			fmt.Printf("Percent Uploaded %d", percentUploaded)
-			
+
 		}
 
 		file, err := os.Open(outputFile)
@@ -53,23 +52,19 @@ func uploadOutput(outputfolder []string, s3BucketName string){
 
 		defer file.Close()
 
-
 		upi := s3manager.UploadInput{}
 
 		upi.Body = file
 		upi.Bucket = &s3BucketName
 		upi.Key = &outputFile
-		
+
 		out, err := uploader.Upload(&upi)
 
 		if err != nil {
 			fmt.Printf("Error with upload of file %s" + outputFile)
 			fmt.Print(out)
 		}
-		
+
 	}
 
 }
-
-
-
