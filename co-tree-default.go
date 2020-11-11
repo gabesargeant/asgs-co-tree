@@ -383,10 +383,10 @@ func buildChildTree(children map[string]*AsgsRegionNode, regions map[string]Asgs
 		cr.LevelType = v.LevelType
 		cr.RegionID = v.RegionName
 		cr.RegionName = v.RegionName
-		cr. = make(map[string]*ChildRegion)
+		cr.ChildRegions = make(map[string]*ChildRegion)
 
 		if v.RegionID == "MB" {
-			crArr[pr.RegionID] = &pr
+			crArr[cr.RegionID] = &cr
 			//This is where i stick a build parent region if MB
 			return crArr
 		}
@@ -396,9 +396,9 @@ func buildChildTree(children map[string]*AsgsRegionNode, regions map[string]Asgs
 		//for each parent in v
 		pt := buildChildTree(v.ParentRegions, regions)
 		for _, val := range pt {
-			pr.ParentRegions[val.RegionID] = val
+			cr.ChildRegions[val.RegionID] = val
 		}
-		prArr[pr.RegionID] = &pr
+		crArr[cr.RegionID] = &cr
 
 	}
 	return crArr
