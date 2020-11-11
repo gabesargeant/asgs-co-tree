@@ -28,7 +28,7 @@ type OutputAsgsRegionNode struct {
 	LevelType     string
 	LevelIDName   string
 	ParentRegions map[string]*ParentRegion
-	ChildRegions  map[string]string
+	ChildRegions  map[string]*ChildRegion
 }
 
 //ParentRegion lighter parent structure
@@ -37,6 +37,14 @@ type ParentRegion struct {
 	RegionName    string
 	LevelType     string
 	ParentRegions map[string]*ParentRegion
+}
+
+//ChildRegion lighter child structure
+type ChildRegion struct {
+	RegionID      string
+	RegionName    string
+	LevelType     string
+	ChildRegions map[string]*ChildRegion
 }
 
 //LevelName, Level Code
@@ -344,10 +352,16 @@ func summarizeRegions(regions map[string]AsgsRegionNode) {
 		out.RegionID = v.RegionID
 		out.RegionName = v.RegionName
 
-		out.ChildRegions = make(map[string]string)
+		out.ChildRegions = make(map[string]*ChildRegion)
 
 		for _, val := range v.ChildRegions {
-			out.ChildRegions[val.RegionID] = val.RegionName
+
+			cr := ChildRegion{}
+			cr.LevelType = v.LevelType
+			cr.RegionID = v.RegionName
+			cr.RegionName = v.RegionName
+
+			out.ChildRegions[val.RegionID] = &cr
 		}
 
 		out.ParentRegions = buildParentTree(v.ParentRegions, regions)
@@ -358,28 +372,36 @@ func summarizeRegions(regions map[string]AsgsRegionNode) {
 
 }
 
-func createOutputRegions(regions map[string]AsgsRegionNode) {
+func buildChildTree(children map[string]*AsgsRegionNode, regions map[string]AsgsRegionNode) map[string]*ChildRegion {
 
-	fmt.Println("starting region output build")
-	for _, v := range regions {
+	crArr := make(map[string]*ChildRegion)
 
-		out := OutputAsgsRegionNode{}
-		out.LevelType = v.LevelType
-		out.RegionID = v.RegionID
-		out.RegionName = v.RegionName
+	//usually there's 1 parent
+	for _, v := range children {
 
-		out.ChildRegions = make(map[string]string)
+		cr := ChildRegion{}
+		cr.LevelType = v.LevelType
+		cr.RegionID = v.RegionName
+		cr.RegionName = v.RegionName
+		cr. = make(map[string]*ChildRegion)
 
-		for _, val := range v.ChildRegions {
-			out.ChildRegions[val.RegionID] = val.RegionName
+		if v.RegionID == "MB" {
+			crArr[pr.RegionID] = &pr
+			//This is where i stick a build parent region if MB
+			return crArr
 		}
 
-		out.ParentRegions = buildParentTree(v.ParentRegions, regions)
+		
 
-		printRegion(out.RegionID, out)
+		//for each parent in v
+		pt := buildChildTree(v.ParentRegions, regions)
+		for _, val := range pt {
+			pr.ParentRegions[val.RegionID] = val
+		}
+		prArr[pr.RegionID] = &pr
 
 	}
-
+	return crArr
 }
 
 func createOutDir(outDir string) {
