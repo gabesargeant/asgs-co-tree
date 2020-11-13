@@ -58,13 +58,13 @@ func readCSV(file *os.File) {
 
 	headMap := getHeaderMap(firstLine)
 
-	buildASGSLevels(headMap, r)
-	buildNonASGSLevels(headMap, r)
+	buildNodes(headMap, r)
+	
 
-	mp := mergeLevels()
+	mergeLevels()
 
 	//createOutputRegions(mp)
-	summarizeRegions(mp)
+	//summarizeRegions(mp)
 
 }
 

@@ -18,33 +18,8 @@ type AsgsRegionNode struct {
 	LevelType     string
 	LevelIDName   string
 	ParentRegions map[string]*AsgsRegionNode
-	ChildRegions  map[string]*AsgsRegionNode
-}
-
-//OutputAsgsRegionNode is the final output format for each node.
-type OutputAsgsRegionNode struct {
-	RegionID      string
-	RegionName    string
-	LevelType     string
-	LevelIDName   string
-	ParentRegions map[string]*ParentRegion
-	ChildRegions  map[string]*ChildRegion
-}
-
-//ParentRegion lighter parent structure
-type ParentRegion struct {
-	RegionID      string
-	RegionName    string
-	LevelType     string
-	ParentRegions map[string]*ParentRegion
-}
-
-//ChildRegion lighter child structure
-type ChildRegion struct {
-	RegionID      string
-	RegionName    string
-	LevelType     string
-	ChildRegions map[string]*ChildRegion
+	ChildRegionType string
+	ChildRegions  map[string]string
 }
 
 //LevelName, Level Code
@@ -82,7 +57,7 @@ func mergeLevels() map[string]AsgsRegionNode {
 //as each 'higher' region will require the lower to be there
 //to link it. And each child gets linked it's parent when
 //its parent gets its child.
-var asgsLevelSequence = []string{
+var levelSequence = []string{
 	"MB",
 	"SA1",
 	"SA2",
@@ -90,16 +65,12 @@ var asgsLevelSequence = []string{
 	"SA4",
 	"STATE",
 	"AUS",
-}
-
-var nonAsgsLevelSequence = []string{
-	"MB",
-	"LGA",
+		"LGA",
 	"POA",
 	"SSC",
-	"STATE",
-	"AUS",
 }
+
+
 
 var levelCodeMap = map[string]string{
 
@@ -150,25 +121,19 @@ var asgsChildLevel = map[string]string{
 	"SSC":   "MB",
 }
 
-//The many to many is a problem....hmm.
-var nonAsgsChildLevel = map[string][]string{
-	"MB":    {},
-	"STATE": {"LGA", "POA", "SSC"},
-	"AUS":   {"STATE"},
-	"LGA":   {"MB"},
-	"POA":   {"MB"},
-	"SSC":   {"MB"},
-}
+// //The many to many is a problem....hmm.
+// var nonAsgsChildLevel = map[string][]string{
+// 	"MB":    {},
+// 	"STATE": {"LGA", "POA", "SSC"},
+// 	"AUS":   {"STATE"},
+// 	"LGA":   {"MB"},
+// 	"POA":   {"MB"},
+// 	"SSC":   {"MB"},
+// }
 
 var skipLevel = map[string]string{
 	"MB":  "SKIP",
 	"SA1": "SKIP",
-}
-
-var nonAsgsLevel = map[string]string{
-	"LGA": "MB",
-	"POA": "MB",
-	"SSC": "MB",
 }
 
 var asgsRegionArray = []string{
@@ -217,7 +182,7 @@ func getHeaderMap(firstLine []string) map[string]int {
 	return m
 }
 
-func buildASGSLevels(headerMap map[string]int, r *csv.Reader) {
+func buildNodes(headerMap map[string]int, r *csv.Reader) {
 
 	//outter loop, read a row.
 	for {
@@ -227,7 +192,7 @@ func buildASGSLevels(headerMap map[string]int, r *csv.Reader) {
 			break
 		}
 
-		for _, currentLevel := range asgsLevelSequence {
+		for _, currentLevel := range levelSequence {
 
 			levelCode := levelCodeMap[currentLevel]
 			levelName := levelNameMap[currentLevel]
@@ -244,7 +209,7 @@ func buildASGSLevels(headerMap map[string]int, r *csv.Reader) {
 				region.LevelType = currentLevel
 				region.RegionName = iLevelName
 				region.RegionID = iLevelCode
-				region.ChildRegions = make(map[string]*AsgsRegionNode)
+				region.ChildRegions = make(map[string]string)
 				region.ParentRegions = make(map[string]*AsgsRegionNode)
 
 			}
@@ -266,7 +231,7 @@ func buildASGSLevels(headerMap map[string]int, r *csv.Reader) {
 			//Establish Relationships
 			childRegion.ParentRegions[region.RegionID] = &region
 
-			region.ChildRegions[childRegion.RegionID] = &childRegion
+			region.ChildRegions[childRegion.RegionID] = childRegion.RegionID
 
 			//Set objects
 			levels[currentLevel][iLevelCode] = region
@@ -276,134 +241,44 @@ func buildASGSLevels(headerMap map[string]int, r *csv.Reader) {
 	}
 }
 
-func buildNonASGSLevels(headerMap map[string]int, r *csv.Reader) {
 
-	//outter loop, read a row.
-	for {
-		row, err := r.Read()
-		if err == io.EOF {
-			//for the last record, write the buffer without the commaNewLine
-			break
-		}
+// //need to cut up.
+// func summarizeRegions(regions map[string]AsgsRegionNode) {
 
-		for _, currentLevel := range nonAsgsLevelSequence {
+// 	fmt.Println("starting region output build")
+// 	for _, v := range regions {
 
-			levelCode := levelCodeMap[currentLevel]
-			levelName := levelNameMap[currentLevel]
+// 		if skipLevel[v.LevelType] == "SKIP" {
+// 			continue
+// 		}
 
-			//instanceLevelCode
-			iLevelCode := row[headerMap[levelCode]]
-			iLevelName := row[headerMap[levelName]]
+// 		out := OutputAsgsRegionNode{}
+// 		out.LevelType = v.LevelType
+// 		out.RegionID = v.RegionID
+// 		out.RegionName = v.RegionName
 
-			region := levels[currentLevel][iLevelCode]
+// 		out.ChildRegions = make(map[string]*ChildRegion)
 
-			if region.RegionID == "" {
+// 		for _, val := range v.ChildRegions {
 
-				region.LevelIDName = levelCode
-				region.LevelType = currentLevel
-				region.RegionName = iLevelName
-				region.RegionID = iLevelCode
-				region.ChildRegions = make(map[string]*AsgsRegionNode)
-				region.ParentRegions = make(map[string]*AsgsRegionNode)
+// 			cr := ChildRegion{}
+// 			cr.LevelType = v.LevelType
+// 			cr.RegionID = v.RegionName
+// 			cr.RegionName = v.RegionName
 
-			}
+// 			out.ChildRegions[val.RegionID] = &cr
+// 		}
 
-			//todo when my heads clear.
-			//loop over nonAsgsChildLevel and for each, find the children and link the parents.
+// 		out.ParentRegions = buildParentTree(v.ParentRegions, regions)
 
-			//Add child element
-			children := nonAsgsChildLevel[currentLevel]
+// 		printRegion(out.RegionID, out)
 
-			if children[0] == "" {
-				levels[currentLevel][iLevelCode] = region
-				continue
-			}
+// 	}
 
-			for _, child := range children {
-
-				childLevelCode := levelCodeMap[child]
-				childRegionCode := row[headerMap[childLevelCode]]
-				childRegion := levels[child][childRegionCode]
-
-				childRegion.ParentRegions[region.RegionID] = &region
-				region.ChildRegions[childRegion.RegionID] = &childRegion
-				levels[child][childRegionCode] = childRegion
-
-			}
-
-			levels[currentLevel][iLevelCode] = region
-
-		}
-	}
-}
+// }
 
 
-func summarizeRegions(regions map[string]AsgsRegionNode) {
-
-	fmt.Println("starting region output build")
-	for _, v := range regions {
-
-		if skipLevel[v.LevelType] == "SKIP" {
-			continue
-		}
-
-		out := OutputAsgsRegionNode{}
-		out.LevelType = v.LevelType
-		out.RegionID = v.RegionID
-		out.RegionName = v.RegionName
-
-		out.ChildRegions = make(map[string]*ChildRegion)
-
-		for _, val := range v.ChildRegions {
-
-			cr := ChildRegion{}
-			cr.LevelType = v.LevelType
-			cr.RegionID = v.RegionName
-			cr.RegionName = v.RegionName
-
-			out.ChildRegions[val.RegionID] = &cr
-		}
-
-		out.ParentRegions = buildParentTree(v.ParentRegions, regions)
-
-		printRegion(out.RegionID, out)
-
-	}
-
-}
-
-func buildChildTree(children map[string]*AsgsRegionNode, regions map[string]AsgsRegionNode) map[string]*ChildRegion {
-
-	crArr := make(map[string]*ChildRegion)
-
-	//usually there's 1 parent
-	for _, v := range children {
-
-		cr := ChildRegion{}
-		cr.LevelType = v.LevelType
-		cr.RegionID = v.RegionName
-		cr.RegionName = v.RegionName
-		cr.ChildRegions = make(map[string]*ChildRegion)
-
-		if v.RegionID == "MB" {
-			crArr[cr.RegionID] = &cr
-			//This is where i stick a build parent region if MB
-			return crArr
-		}
-
-		
-
-		//for each parent in v
-		pt := buildChildTree(v.ParentRegions, regions)
-		for _, val := range pt {
-			cr.ChildRegions[val.RegionID] = val
-		}
-		crArr[cr.RegionID] = &cr
-
-	}
-	return crArr
-}
-
+//Not needed
 func createOutDir(outDir string) {
 
 	err := os.Mkdir(outDir, 0777)
@@ -412,7 +287,8 @@ func createOutDir(outDir string) {
 	}
 }
 
-func printRegion(id string, out OutputAsgsRegionNode) {
+//only for testing
+func printRegion(id string, out AsgsRegionNode) {
 
 	dataFile, err := os.Create(outfolder + id + ".json")
 	bw := bufio.NewWriter(dataFile)
@@ -434,31 +310,32 @@ func printRegion(id string, out OutputAsgsRegionNode) {
 
 }
 
-func buildParentTree(parents map[string]*AsgsRegionNode, regions map[string]AsgsRegionNode) map[string]*ParentRegion {
+// //not needed.
+// func buildParentTree(parents map[string]*AsgsRegionNode, regions map[string]AsgsRegionNode) map[string]*ParentRegion {
 
-	prArr := make(map[string]*ParentRegion)
+// 	prArr := make(map[string]*ParentRegion)
 
-	//usually there's 1 parent
-	for _, v := range parents {
+// 	//usually there's 1 parent
+// 	for _, v := range parents {
 
-		pr := ParentRegion{}
-		pr.LevelType = v.LevelType
-		pr.RegionID = v.RegionName
-		pr.RegionName = v.RegionName
-		pr.ParentRegions = make(map[string]*ParentRegion)
+// 		pr := ParentRegion{}
+// 		pr.LevelType = v.LevelType
+// 		pr.RegionID = v.RegionName
+// 		pr.RegionName = v.RegionName
+// 		pr.ParentRegions = make(map[string]*ParentRegion)
 
-		if v.RegionID == "AUS" {
-			prArr[pr.RegionID] = &pr
-			return prArr
-		}
+// 		if v.RegionID == "AUS" {
+// 			prArr[pr.RegionID] = &pr
+// 			return prArr
+// 		}
 
-		//for each parent in v
-		pt := buildParentTree(v.ParentRegions, regions)
-		for _, val := range pt {
-			pr.ParentRegions[val.RegionID] = val
-		}
-		prArr[pr.RegionID] = &pr
+// 		//for each parent in v
+// 		pt := buildParentTree(v.ParentRegions, regions)
+// 		for _, val := range pt {
+// 			pr.ParentRegions[val.RegionID] = val
+// 		}
+// 		prArr[pr.RegionID] = &pr
 
-	}
-	return prArr
-}
+// 	}
+// 	return prArr
+// }
