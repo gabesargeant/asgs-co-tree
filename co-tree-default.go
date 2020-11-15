@@ -242,40 +242,20 @@ func buildNodes(headerMap map[string]int, r *csv.Reader) {
 }
 
 
-// //need to cut up.
-// func summarizeRegions(regions map[string]AsgsRegionNode) {
 
-// 	fmt.Println("starting region output build")
-// 	for _, v := range regions {
+func summarizeRegions(regions map[string]AsgsRegionNode) {
+	var i int = 0;
+	fmt.Println("starting region output build")
+	for _, v := range regions {
+		i++
+		printRegion(v.RegionID, v)
+		if i > 1000 {
+			break;
+		}
 
-// 		if skipLevel[v.LevelType] == "SKIP" {
-// 			continue
-// 		}
+	}
 
-// 		out := OutputAsgsRegionNode{}
-// 		out.LevelType = v.LevelType
-// 		out.RegionID = v.RegionID
-// 		out.RegionName = v.RegionName
-
-// 		out.ChildRegions = make(map[string]*ChildRegion)
-
-// 		for _, val := range v.ChildRegions {
-
-// 			cr := ChildRegion{}
-// 			cr.LevelType = v.LevelType
-// 			cr.RegionID = v.RegionName
-// 			cr.RegionName = v.RegionName
-
-// 			out.ChildRegions[val.RegionID] = &cr
-// 		}
-
-// 		out.ParentRegions = buildParentTree(v.ParentRegions, regions)
-
-// 		printRegion(out.RegionID, out)
-
-// 	}
-
-// }
+}
 
 
 //Not needed
@@ -289,6 +269,7 @@ func createOutDir(outDir string) {
 
 //only for testing
 func printRegion(id string, out AsgsRegionNode) {
+	
 
 	dataFile, err := os.Create(outfolder + id + ".json")
 	bw := bufio.NewWriter(dataFile)

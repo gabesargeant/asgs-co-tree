@@ -61,10 +61,10 @@ func readCSV(file *os.File) {
 	buildNodes(headMap, r)
 	
 
-	mergeLevels()
+	mp := mergeLevels()
 
 	//createOutputRegions(mp)
-	//summarizeRegions(mp)
+	summarizeRegions(mp)
 
 }
 
