@@ -17,9 +17,23 @@ type AsgsRegionNode struct {
 	RegionName    string
 	LevelType     string
 	LevelIDName   string
-	ParentRegions map[string]*AsgsRegionNode
+	ParentRegions  map[string]ParentRegion
 	ChildRegionType string
-	ChildRegions  map[string]string
+	ChildRegions  map[string]ChildRegion
+}
+
+//ChildRegion The output child of an Asgs Region Node
+type ChildRegion struct {
+	RegionID      string
+	RegionName    string
+	LevelType     string
+}
+
+//ParentRegion the output parent region of a ASGS region.
+type ParentRegion struct {
+	RegionID      string
+	RegionName    string
+	LevelType     string
 }
 
 //LevelName, Level Code
@@ -209,8 +223,8 @@ func buildNodes(headerMap map[string]int, r *csv.Reader) {
 				region.LevelType = currentLevel
 				region.RegionName = iLevelName
 				region.RegionID = iLevelCode
-				region.ChildRegions = make(map[string]string)
-				region.ParentRegions = make(map[string]*AsgsRegionNode)
+				region.ChildRegions = make(map[string]ChildRegion)
+				region.ParentRegions = make(map[string]ParentRegion)
 
 			}
 
@@ -229,9 +243,18 @@ func buildNodes(headerMap map[string]int, r *csv.Reader) {
 			childRegion := levels[child][childRegionCode]
 
 			//Establish Relationships
-			childRegion.ParentRegions[region.RegionID] = &region
+			pr := ParentRegion{}
+			pr.LevelType = region.LevelType
+			pr.RegionName = region.RegionName
+			pr.RegionID = region.RegionID
 
-			region.ChildRegions[childRegion.RegionID] = childRegion.RegionID
+
+			childRegion.ParentRegions[region.RegionID] = pr
+			cr := ChildRegion{}
+			cr.LevelType = childRegion.LevelType
+			cr.RegionName = childRegion.RegionName
+			cr.RegionID = childRegion.RegionID
+			region.ChildRegions[childRegion.RegionID] = cr
 
 			//Set objects
 			levels[currentLevel][iLevelCode] = region
