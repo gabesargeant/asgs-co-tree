@@ -8,6 +8,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
@@ -70,6 +72,51 @@ func uploadOutput(outputfolder []string, s3BucketName string) {
 }
 
 //Push to dynamoDB table.
-func pushToDatabase(nodeSet []AsgsRegionNode) {
+func pushToDatabase(nodeSet []AsgsRegionNode) dynamodb.BatchWriteItemInput {
+
+	
+
+	av, err := dynamodbattribute.MarshalMap(nodeSet)
+
+	if err != nil {
+		fmt.Println("Error with unmarhalling list of nodesets")
+		fmt.Println(err.Error())
+		os.Exit(1)
+		}
+
+	pr := dynamodb.PutRequest{}
+	pr.SetItem(av)	
+	wr := dynamodb.WriteRequest{}
+	bwi := dynamodb.BatchWriteItemInput{}
+	bwi.SetRequestItems(&wr)
+
+	return bwi
+
+}
+
+func buildKeySchema() []*dynamodb.KeySchemaElement {
+
+	arr := make([]*dynamodb.KeySchemaElement, 2)
+
+	//partition key
+	pid := "PartitionID"
+	hash := "HASH"
+
+	//sort key
+	rid := "RegionID"
+	rng := "RANGE"
+
+	kse1 := dynamodb.KeySchemaElement{}
+	kse1.AttributeName = &pid
+	kse1.KeyType = &hash
+
+	kse2 := dynamodb.KeySchemaElement{}
+	kse2.AttributeName = &rid
+	kse2.KeyType = &rng
+
+	arr[0] = &kse1
+	arr[1] = &kse2
+
+	return arr
 
 }
