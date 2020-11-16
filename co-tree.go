@@ -10,6 +10,7 @@ import (
 
 //Arguments for the program
 type Arguments struct {
+	DynamoDBTableName *string
 	InputFile *string
 	OutputDir *string
 	S3Bucket  *string
@@ -37,7 +38,11 @@ func main() {
 
 	createOutDir(outfolder)
 
-	readCSV(inputFile)
+	mp := readCSV(inputFile)
+
+	//summarizeRegions(mp)
+
+	pushToDatabase(mp)
 
 	if *args.S3Bucket != "" {
 		files := getFiles(outfolder)
@@ -46,7 +51,7 @@ func main() {
 
 }
 
-func readCSV(file *os.File) {
+func readCSV(file *os.File) map[string]AsgsRegionNode {
 
 	br := bufio.NewReader(file)
 	r := csv.NewReader(br)
@@ -63,8 +68,8 @@ func readCSV(file *os.File) {
 
 	mp := mergeLevels()
 
-	//createOutputRegions(mp)
-	summarizeRegions(mp)
+	return mp
+	
 
 }
 
@@ -82,7 +87,7 @@ func getFile(file string) *os.File {
 
 func setArgs() Arguments {
 	a := Arguments{}
-
+	a.DynamoDBTableName = flag.String("n", "test", "Name of the DynamoDB Table")
 	a.InputFile = flag.String("i", "cat.csv", "Input File for building tree")
 	a.OutputDir = flag.String("o", "./out/", "Output folder, if not set defaults to pwd ./out/ .")
 	a.S3Bucket = flag.String("s", "", "If not set, no upload attempted. Assumes sdk v2 configured")

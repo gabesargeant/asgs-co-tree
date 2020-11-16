@@ -7,6 +7,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
 //AsgsRegionNode One region in all the regions, Let the nodes begin!
@@ -280,6 +283,60 @@ func summarizeRegions(regions map[string]AsgsRegionNode) {
 
 }
 
+func pushToDatabase(tableName string,mapNodes map[string]AsgsRegionNode ){
+
+	nodeArr := make([]AsgsRegionNode, 25)
+	
+	i := 0
+	for _, v := range mapNodes {
+
+		nodeArr[i % 25] = v
+	
+		if i % 25 == 0 {
+			br := getBatch(tableName, nodeArr )
+
+			pushtoDynamo(br)
+		}
+
+	}
+
+	
+}
+
+
+func pushtoDynamo(dynamodb.BatchWriteItemInput){
+
+}
+
+//Push to dynamoDB table.
+func getBatch(tableName string, nodeArr []AsgsRegionNode) dynamodb.BatchWriteItemInput{
+
+	
+
+	av, err := dynamodbattribute.MarshalMap(nodeArr)
+
+	if err != nil {
+		fmt.Println("Error with unmarhalling list of nodesets")
+		fmt.Println(err.Error())
+		os.Exit(1)
+		}
+
+	pr := dynamodb.PutRequest{}
+	pr.SetItem(av)	
+	wr := dynamodb.WriteRequest{}
+	bwi := dynamodb.BatchWriteItemInput{}
+	
+ 	wrMap := make(map[string][]*dynamodb.WriteRequest, 1)
+
+	wrMap[tableName][0] = &wr
+	 
+	bwi.SetRequestItems(wrMap)
+
+	 return bwi
+
+}
+
+
 
 //Not needed
 func createOutDir(outDir string) {
@@ -313,4 +370,5 @@ func printRegion(id string, out AsgsRegionNode) {
 	dataFile.Close()
 
 }
+
 

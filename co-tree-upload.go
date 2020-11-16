@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"smap/record"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -71,29 +72,6 @@ func uploadOutput(outputfolder []string, s3BucketName string) {
 
 }
 
-//Push to dynamoDB table.
-func pushToDatabase(nodeSet []AsgsRegionNode) dynamodb.BatchWriteItemInput {
-
-	
-
-	av, err := dynamodbattribute.MarshalMap(nodeSet)
-
-	if err != nil {
-		fmt.Println("Error with unmarhalling list of nodesets")
-		fmt.Println(err.Error())
-		os.Exit(1)
-		}
-
-	pr := dynamodb.PutRequest{}
-	pr.SetItem(av)	
-	wr := dynamodb.WriteRequest{}
-	bwi := dynamodb.BatchWriteItemInput{}
-	bwi.SetRequestItems(&wr)
-
-	return bwi
-
-}
-
 func buildKeySchema() []*dynamodb.KeySchemaElement {
 
 	arr := make([]*dynamodb.KeySchemaElement, 2)
@@ -119,4 +97,61 @@ func buildKeySchema() []*dynamodb.KeySchemaElement {
 
 	return arr
 
+}
+
+
+
+func composeBatchInputs(recs *[]record.Record, name string) *[]dynamodb.BatchWriteItemInput {
+
+	buckets := (len(*recs) / 25) + 1
+	fmt.Print("Number of Buckets: ")
+	fmt.Println(buckets)
+	fmt.Print("Number of Records: ")
+	fmt.Println(len(*recs))
+	arrayBatchRequest := make([]dynamodb.BatchWriteItemInput, buckets)
+
+	for i := 0; i < buckets; i++ {
+
+		//putreqarr := make([]dynamodb.PutRequest, 25)
+		//wrArr := make([]*dynamodb.WriteRequest, 25)
+		wrArr := []*dynamodb.WriteRequest{}
+		//tmp := []*dynamodb.WriteRequest{}
+
+		stepValue := i * 25
+
+		for j := 0; j < 25; j++ {
+			//fmt.Println("tick")
+			//fmt.Println(stepValue + j)
+
+			if j+stepValue == len(*recs) {
+
+				break
+			}
+
+			av, err := dynamodbattribute.MarshalMap((*recs)[j+stepValue])
+
+			if err != nil {
+				fmt.Println("Got Error unmarshalling map")
+				fmt.Println((*recs)[i*j])
+				fmt.Print("Loop ", i, j)
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+
+			pr := dynamodb.PutRequest{}
+			pr.SetItem(av)
+			wr := dynamodb.WriteRequest{}
+			wr.SetPutRequest(&pr)
+
+			wrArr = append(wrArr, &wr)
+
+		}
+		wrMap := make(map[string][]*dynamodb.WriteRequest, 1)
+
+		wrMap[name] = wrArr
+
+		arrayBatchRequest[i].SetRequestItems(wrMap)
+
+	}
+	return &arrayBatchRequest
 }
