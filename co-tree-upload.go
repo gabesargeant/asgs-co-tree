@@ -68,3 +68,8 @@ func uploadOutput(outputfolder []string, s3BucketName string) {
 	}
 
 }
+
+//Push to dynamoDB table.
+func pushToDatabase(nodeSet []AsgsRegionNode) {
+
+}

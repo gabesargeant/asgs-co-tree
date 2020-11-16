@@ -314,32 +314,3 @@ func printRegion(id string, out AsgsRegionNode) {
 
 }
 
-// //not needed.
-// func buildParentTree(parents map[string]*AsgsRegionNode, regions map[string]AsgsRegionNode) map[string]*ParentRegion {
-
-// 	prArr := make(map[string]*ParentRegion)
-
-// 	//usually there's 1 parent
-// 	for _, v := range parents {
-
-// 		pr := ParentRegion{}
-// 		pr.LevelType = v.LevelType
-// 		pr.RegionID = v.RegionName
-// 		pr.RegionName = v.RegionName
-// 		pr.ParentRegions = make(map[string]*ParentRegion)
-
-// 		if v.RegionID == "AUS" {
-// 			prArr[pr.RegionID] = &pr
-// 			return prArr
-// 		}
-
-// 		//for each parent in v
-// 		pt := buildParentTree(v.ParentRegions, regions)
-// 		for _, val := range pt {
-// 			pr.ParentRegions[val.RegionID] = val
-// 		}
-// 		prArr[pr.RegionID] = &pr
-
-// 	}
-// 	return prArr
-// }
