@@ -8,6 +8,9 @@ import (
 	"io"
 	"os"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
@@ -16,27 +19,26 @@ import (
 // This is a doubly linked node. ie it points up and down.
 //Maps not arrays for the pointers, this to avoid duplicates
 type AsgsRegionNode struct {
-	RegionID      string
-	RegionName    string
-	LevelType     string
-	LevelIDName   string
-	ParentRegions  map[string]ParentRegion
-	ChildRegionType string
-	ChildRegions  map[string]ChildRegion
+	RegionID        string                  `json:"RegionID"`
+	RegionName      string                  `json:"RegionName"`
+	LevelType       string                  `json:"LevelType"`
+	LevelIDName     string                  `json:"LevelIDName"`
+	ParentRegions   map[string]ParentRegion `json:"ParentRegions"`
+	ChildRegions    map[string]ChildRegion  `json:"ChildRegions"`
 }
 
 //ChildRegion The output child of an Asgs Region Node
 type ChildRegion struct {
-	RegionID      string
-	RegionName    string
-	LevelType     string
+	RegionID   string `json:"RegionID"`
+	RegionName string `json:"RegionName"`
+	LevelType  string `json:"LevelType"`
 }
 
 //ParentRegion the output parent region of a ASGS region.
 type ParentRegion struct {
-	RegionID      string
-	RegionName    string
-	LevelType     string
+	RegionID   string `json:"RegionID"`
+	RegionName string `json:"RegionName"`
+	LevelType  string `json:"LevelType"`
 }
 
 //LevelName, Level Code
@@ -82,12 +84,10 @@ var levelSequence = []string{
 	"SA4",
 	"STATE",
 	"AUS",
-		"LGA",
+	"LGA",
 	"POA",
 	"SSC",
 }
-
-
 
 var levelCodeMap = map[string]string{
 
@@ -251,7 +251,6 @@ func buildNodes(headerMap map[string]int, r *csv.Reader) {
 			pr.RegionName = region.RegionName
 			pr.RegionID = region.RegionID
 
-
 			childRegion.ParentRegions[region.RegionID] = pr
 			cr := ChildRegion{}
 			cr.LevelType = childRegion.LevelType
@@ -267,76 +266,118 @@ func buildNodes(headerMap map[string]int, r *csv.Reader) {
 	}
 }
 
-
-
 func summarizeRegions(regions map[string]AsgsRegionNode) {
-	var i int = 0;
+	var i int = 0
 	fmt.Println("starting region output build")
 	for _, v := range regions {
 		i++
 		printRegion(v.RegionID, v)
-		if i > 1000 {
-			break;
+		if i > 100 {
+			break
 		}
 
 	}
 
 }
 
-func pushToDatabase(tableName string,mapNodes map[string]AsgsRegionNode ){
+func pushToDatabase(tableName string, mapNodes map[string]AsgsRegionNode) {
 
 	nodeArr := make([]AsgsRegionNode, 25)
-	
+	//one session for all uploads.
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		//SharedConfigState: session.SharedConfigEnable,
+		Config: aws.Config{Region: aws.String("ap-southeast-2")},
+	}))
+
 	i := 0
 	for _, v := range mapNodes {
 
-		nodeArr[i % 25] = v
-	
-		if i % 25 == 0 {
-			br := getBatch(tableName, nodeArr )
+		nodeArr[i%25] = v
 
-			pushtoDynamo(br)
+		if i%25 == 0 || i == len(mapNodes)-1 {
+			br := getBatch(tableName, nodeArr)
+
+			pushtoDynamo(sess, br)
 		}
 
 	}
 
-	
 }
 
+func pushtoDynamo(sess *session.Session, batchReq dynamodb.BatchWriteItemInput) {
+	return
+	svc := dynamodb.New(sess)
 
-func pushtoDynamo(dynamodb.BatchWriteItemInput){
+	result, err := svc.BatchWriteItem(&batchReq)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case dynamodb.ErrCodeProvisionedThroughputExceededException:
+				fmt.Println(dynamodb.ErrCodeProvisionedThroughputExceededException, aerr.Error())
+			case dynamodb.ErrCodeResourceNotFoundException:
+				fmt.Println(dynamodb.ErrCodeResourceNotFoundException, aerr.Error())
+			case dynamodb.ErrCodeItemCollectionSizeLimitExceededException:
+				fmt.Println(dynamodb.ErrCodeItemCollectionSizeLimitExceededException, aerr.Error())
+			case dynamodb.ErrCodeRequestLimitExceeded:
+				fmt.Println(dynamodb.ErrCodeRequestLimitExceeded, aerr.Error())
+			case dynamodb.ErrCodeInternalServerError:
+				fmt.Println(dynamodb.ErrCodeInternalServerError, aerr.Error())
+			default:
+				fmt.Println(aerr.Error())
+			}
+		} else {
+			// Print the error, cast err to awserr.Error to get the Code and
+			// Message from an error.
+			fmt.Println(err.Error())
+		}
+
+	}
+
+	if len(result.UnprocessedItems) != 0 {
+		fmt.Println(*result)
+	}
 
 }
 
 //Push to dynamoDB table.
-func getBatch(tableName string, nodeArr []AsgsRegionNode) dynamodb.BatchWriteItemInput{
+func getBatch(tableName string, nodeArr []AsgsRegionNode) dynamodb.BatchWriteItemInput {
 
-	
+	wrArr := []*dynamodb.WriteRequest{}
 
-	av, err := dynamodbattribute.MarshalMap(nodeArr)
+	for _, n := range nodeArr {
+		fmt.Println("node")
+		fmt.Println(nodeArr)
 
-	if err != nil {
-		fmt.Println("Error with unmarhalling list of nodesets")
-		fmt.Println(err.Error())
-		os.Exit(1)
+		var x = []string{
+			n.RegionID,
+			n.LevelType,
 		}
 
-	pr := dynamodb.PutRequest{}
-	pr.SetItem(av)	
-	wr := dynamodb.WriteRequest{}
-	bwi := dynamodb.BatchWriteItemInput{}
-	
- 	wrMap := make(map[string][]*dynamodb.WriteRequest, 1)
+		av, err := dynamodbattribute.MarshalMap(x)
+		fmt.Println("attribute maps")
+		fmt.Println(av)
+		if err != nil {
+			fmt.Println("Error with unmarhalling list of nodesets")
+			fmt.Println(err.Error())
+			os.Exit(1)
 
-	wrMap[tableName][0] = &wr
-	 
+		}
+		pr := dynamodb.PutRequest{}
+		pr.SetItem(av)
+		wr := dynamodb.WriteRequest{}
+		wrArr = append(wrArr, &wr)
+
+	}
+
+	wrMap := make(map[string][]*dynamodb.WriteRequest, 1)
+	wrMap[tableName] = wrArr
+
+	bwi := dynamodb.BatchWriteItemInput{}
 	bwi.SetRequestItems(wrMap)
 
-	 return bwi
+	return bwi
 
 }
-
-
 
 //Not needed
 func createOutDir(outDir string) {
@@ -349,7 +390,6 @@ func createOutDir(outDir string) {
 
 //only for testing
 func printRegion(id string, out AsgsRegionNode) {
-	
 
 	dataFile, err := os.Create(outfolder + id + ".json")
 	bw := bufio.NewWriter(dataFile)
@@ -370,5 +410,3 @@ func printRegion(id string, out AsgsRegionNode) {
 	dataFile.Close()
 
 }
-
-
