@@ -19,26 +19,26 @@ import (
 // This is a doubly linked node. ie it points up and down.
 //Maps not arrays for the pointers, this to avoid duplicates
 type AsgsRegionNode struct {
-	RegionID        string                  `json:"RegionID"`
-	RegionName      string                  `json:"RegionName"`
-	LevelType       string                  `json:"LevelType"`
-	LevelIDName     string                  `json:"LevelIDName"`
-	ParentRegions   map[string]ParentRegion `json:"ParentRegions"`
-	ChildRegions    map[string]ChildRegion  `json:"ChildRegions"`
+	RegionID        string                  `json:"RegionID,omitempty"`
+	RegionName      string                  `json:"RegionName,omitempty"`
+	LevelType       string                  `json:"LevelType,omitempty"`
+	LevelIDName     string                  `json:"LevelIDName,omitempty"`
+	ParentRegions   map[string]ParentRegion `json:"ParentRegions,omitempty"`
+	ChildRegions    map[string]ChildRegion  `json:"ChildRegions,omitempty"`
 }
 
 //ChildRegion The output child of an Asgs Region Node
 type ChildRegion struct {
-	RegionID   string `json:"RegionID"`
-	RegionName string `json:"RegionName"`
-	LevelType  string `json:"LevelType"`
+	RegionID   string `json:"RegionID,omitempty"`
+	RegionName string `json:"RegionName,omitempty"`
+	LevelType  string `json:"LevelType,omitempty"`
 }
 
 //ParentRegion the output parent region of a ASGS region.
 type ParentRegion struct {
-	RegionID   string `json:"RegionID"`
-	RegionName string `json:"RegionName"`
-	LevelType  string `json:"LevelType"`
+	RegionID   string `json:"RegionID,omitempty"`
+	RegionName string `json:"RegionName,omitempty"`
+	LevelType  string `json:"LevelType,omitempty"`
 }
 
 //LevelName, Level Code
@@ -282,30 +282,59 @@ func summarizeRegions(regions map[string]AsgsRegionNode) {
 
 func pushToDatabase(tableName string, mapNodes map[string]AsgsRegionNode) {
 
-	nodeArr := make([]AsgsRegionNode, 25)
-	//one session for all uploads.
+	
+	// //one session for all uploads.
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		//SharedConfigState: session.SharedConfigEnable,
 		Config: aws.Config{Region: aws.String("ap-southeast-2")},
 	}))
 
+	remainder := len(mapNodes) % 25;
+	finNodeArr := make([]AsgsRegionNode,remainder)
+
+	nodeArr := make([]AsgsRegionNode,25)
+	//fmt.Println(len(mapNodes))
 	i := 0
 	for _, v := range mapNodes {
-
+		i++
+		// fmt.Println(v);
+		// fmt.Println(i);
 		nodeArr[i%25] = v
+		if (i % 25 == 0 && i > 0) || i == len(mapNodes) -1 {
+			
 
-		if i%25 == 0 || i == len(mapNodes)-1 {
-			br := getBatch(tableName, nodeArr)
+//			fmt.Println(nodeArr)
+			if i != len(mapNodes)-1 {
+				br := getBatch(tableName, nodeArr)
+				pushToDynamo(sess, br)
+			}else{
+				// final nodes
+				//fmt.Println(nodeArr)
+				//fmt.Println("Final Nodes ----")
 
-			pushtoDynamo(sess, br)
+				for j := 0; j < remainder; j++{
+					finNodeArr[j]= nodeArr[j]
+				
+				}
+
+				br := getBatch(tableName, nodeArr)
+				pushToDynamo(sess, br)
+
+				
+			}
+			
+		
+			
+			
 		}
+		
 
 	}
 
 }
 
-func pushtoDynamo(sess *session.Session, batchReq dynamodb.BatchWriteItemInput) {
-	return
+func pushToDynamo(sess *session.Session, batchReq dynamodb.BatchWriteItemInput) {
+	//return
 	svc := dynamodb.New(sess)
 
 	result, err := svc.BatchWriteItem(&batchReq)
@@ -343,19 +372,15 @@ func pushtoDynamo(sess *session.Session, batchReq dynamodb.BatchWriteItemInput) 
 func getBatch(tableName string, nodeArr []AsgsRegionNode) dynamodb.BatchWriteItemInput {
 
 	wrArr := []*dynamodb.WriteRequest{}
-
+	fmt.Println("node len ", len(nodeArr))
 	for _, n := range nodeArr {
-		fmt.Println("node")
-		fmt.Println(nodeArr)
+		//fmt.Println("node")
+		//fmt.Println(nodeArr)
 
-		var x = []string{
-			n.RegionID,
-			n.LevelType,
-		}
-
-		av, err := dynamodbattribute.MarshalMap(x)
-		fmt.Println("attribute maps")
-		fmt.Println(av)
+		av, err := dynamodbattribute.MarshalMap(n)
+		//fmt.Println("attribute maps")
+		//fmt.Println(av)
+		//os.Exit(1)
 		if err != nil {
 			fmt.Println("Error with unmarhalling list of nodesets")
 			fmt.Println(err.Error())

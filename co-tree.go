@@ -39,7 +39,7 @@ func main() {
 
 	mp := readCSV(inputFile)
 
-	//summarizeRegions(mp)
+	summarizeRegions(mp)
 
 	if *args.DynamoDBTableName != "" {
 		pushToDatabase(*args.DynamoDBTableName, mp)
