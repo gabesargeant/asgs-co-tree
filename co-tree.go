@@ -39,10 +39,12 @@ func main() {
 
 	mp := readCSV(inputFile)
 
-	summarizeRegions(mp)
+	//summarizeRegions(mp)
 
 	if *args.DynamoDBTableName != "" {
 		pushToDatabase(*args.DynamoDBTableName, mp)
+	}else {
+		fmt.Println("Skipping push to DB")
 	}
 
 }
@@ -81,7 +83,7 @@ func getFile(file string) *os.File {
 
 func setArgs() Arguments {
 	a := Arguments{}
-	a.DynamoDBTableName = flag.String("n", "test", "Name of the DynamoDB Table")
+	a.DynamoDBTableName = flag.String("n", "", "Name of the DynamoDB Table")
 	a.InputFile = flag.String("i", "cat.csv", "Input File for building tree")
 	a.OutputDir = flag.String("o", "./out/", "Output folder, if not set defaults to pwd ./out/ .")
 	return a

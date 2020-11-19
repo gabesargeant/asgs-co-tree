@@ -390,6 +390,7 @@ func getBatch(tableName string, nodeArr []AsgsRegionNode) dynamodb.BatchWriteIte
 		pr := dynamodb.PutRequest{}
 		pr.SetItem(av)
 		wr := dynamodb.WriteRequest{}
+		wr.SetPutRequest(&pr)
 		wrArr = append(wrArr, &wr)
 
 	}
