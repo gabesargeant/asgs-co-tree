@@ -306,7 +306,7 @@ func pushToDatabase(tableName string, mapNodes map[string]AsgsRegionNode) {
 //			fmt.Println(nodeArr)
 			if i != len(mapNodes)-1 {
 				br := getBatch(tableName, nodeArr)
-				pushToDynamo(sess, br)
+				pushToDynamo(sess, br, tableName)
 			}else{
 				// final nodes
 				//fmt.Println(nodeArr)
@@ -318,7 +318,7 @@ func pushToDatabase(tableName string, mapNodes map[string]AsgsRegionNode) {
 				}
 
 				br := getBatch(tableName, nodeArr)
-				pushToDynamo(sess, br)
+				pushToDynamo(sess, br, tableName)
 
 				
 			}
@@ -333,7 +333,9 @@ func pushToDatabase(tableName string, mapNodes map[string]AsgsRegionNode) {
 
 }
 
-func pushToDynamo(sess *session.Session, batchReq dynamodb.BatchWriteItemInput) {
+var recordsSent = 0;
+
+func pushToDynamo(sess *session.Session, batchReq dynamodb.BatchWriteItemInput, tableName string) {
 	//return
 	svc := dynamodb.New(sess)
 
@@ -366,13 +368,15 @@ func pushToDynamo(sess *session.Session, batchReq dynamodb.BatchWriteItemInput) 
 		fmt.Println(*result)
 	}
 
+	recordsSent += 25
+
 }
 
 //Push to dynamoDB table.
 func getBatch(tableName string, nodeArr []AsgsRegionNode) dynamodb.BatchWriteItemInput {
 
 	wrArr := []*dynamodb.WriteRequest{}
-	fmt.Println("node len ", len(nodeArr))
+	//fmt.Println("node len ", len(nodeArr))
 	for _, n := range nodeArr {
 		//fmt.Println("node")
 		//fmt.Println(nodeArr)
