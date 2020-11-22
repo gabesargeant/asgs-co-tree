@@ -44,6 +44,7 @@ func main() {
 	if *args.DynamoDBTableName != "" {
 		pushToDatabase(*args.DynamoDBTableName, mp)
 		fmt.Println("Sent : ", recordsSent, " to Dynamo")
+	
 	}else {
 		fmt.Println("Skipping push to DB")
 	}

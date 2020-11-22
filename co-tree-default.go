@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -55,6 +56,8 @@ var levels = map[string]map[string]AsgsRegionNode{
 	"SSC":   {},
 }
 
+var totalRegions float64 = 0
+
 func mergeLevels() map[string]AsgsRegionNode {
 
 	mp := make(map[string]AsgsRegionNode)
@@ -67,7 +70,8 @@ func mergeLevels() map[string]AsgsRegionNode {
 		}
 
 	}
-	fmt.Println(len(mp))
+	totalRegions = float64(len(mp))
+	fmt.Println("totalRegions", totalRegions )
 	return mp
 }
 
@@ -306,7 +310,7 @@ func pushToDatabase(tableName string, mapNodes map[string]AsgsRegionNode) {
 //			fmt.Println(nodeArr)
 			if i != len(mapNodes)-1 {
 				br := getBatch(tableName, nodeArr)
-				pushToDynamo(sess, br, tableName)
+				pushToDynamo(sess, br)
 			}else{
 				// final nodes
 				//fmt.Println(nodeArr)
@@ -318,7 +322,7 @@ func pushToDatabase(tableName string, mapNodes map[string]AsgsRegionNode) {
 				}
 
 				br := getBatch(tableName, nodeArr)
-				pushToDynamo(sess, br, tableName)
+				pushToDynamo(sess, br)
 
 				
 			}
@@ -331,11 +335,16 @@ func pushToDatabase(tableName string, mapNodes map[string]AsgsRegionNode) {
 
 	}
 
+	for _, v := range failOverRequest {
+		processFailOver(sess, v);
+	}
+
+
 }
 
-var recordsSent = 0;
+var recordsSent float64 = 0;
 
-func pushToDynamo(sess *session.Session, batchReq dynamodb.BatchWriteItemInput, tableName string) {
+func pushToDynamo(sess *session.Session, batchReq dynamodb.BatchWriteItemInput) {
 	//return
 	svc := dynamodb.New(sess)
 
@@ -366,10 +375,75 @@ func pushToDynamo(sess *session.Session, batchReq dynamodb.BatchWriteItemInput, 
 
 	if len(result.UnprocessedItems) != 0 {
 		fmt.Println(*result)
+
+		fmt.Println("Some records no processed, pushing to failover.");
+		
+		bwi := dynamodb.BatchWriteItemInput{}
+		bwi.SetRequestItems(result.UnprocessedItems)
+		failOverRequest = append(failOverRequest, bwi)
+
+		fmt.Println("Fail Over size:", len(failOverRequest))
+
 	}
 
-	recordsSent += 25
+	recordsSent += 25.0
 
+	
+	x := math.Round((recordsSent/totalRegions) * 100)
+
+	fmt.Println("Percentage done : ~ ", x, "%")
+}
+
+var failOverRequest = []dynamodb.BatchWriteItemInput{}
+
+func processFailOver(sess *session.Session, batchReq dynamodb.BatchWriteItemInput){
+
+	svc := dynamodb.New(sess)
+
+	result, err := svc.BatchWriteItem(&batchReq)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case dynamodb.ErrCodeProvisionedThroughputExceededException:
+				fmt.Println(dynamodb.ErrCodeProvisionedThroughputExceededException, aerr.Error())
+			case dynamodb.ErrCodeResourceNotFoundException:
+				fmt.Println(dynamodb.ErrCodeResourceNotFoundException, aerr.Error())
+			case dynamodb.ErrCodeItemCollectionSizeLimitExceededException:
+				fmt.Println(dynamodb.ErrCodeItemCollectionSizeLimitExceededException, aerr.Error())
+			case dynamodb.ErrCodeRequestLimitExceeded:
+				fmt.Println(dynamodb.ErrCodeRequestLimitExceeded, aerr.Error())
+			case dynamodb.ErrCodeInternalServerError:
+				fmt.Println(dynamodb.ErrCodeInternalServerError, aerr.Error())
+			default:
+				fmt.Println(aerr.Error())
+			}
+		} else {
+			// Print the error, cast err to awserr.Error to get the Code and
+			// Message from an error.
+			fmt.Println(err.Error())
+		}
+
+	}
+
+	if len(result.UnprocessedItems) != 0 {
+		fmt.Println("failover with fail over")
+		fmt.Println("Printing out final nodes");
+
+		for _, v := range result.UnprocessedItems {
+
+			for i := 0; i < len(v); i++ {
+
+				pr := v[i].PutRequest
+				var node AsgsRegionNode
+					err := dynamodbattribute.UnmarshalMap(pr.Item, &node)
+					if err != nil {
+						fmt.Println("can't unmarshal ", pr.Item);
+
+					}
+					printRegion(node.RegionID, node)
+			}	
+		}		
+	}
 }
 
 //Push to dynamoDB table.
