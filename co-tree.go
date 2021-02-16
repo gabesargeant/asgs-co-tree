@@ -39,15 +39,15 @@ func main() {
 
 	mp := readCSV(inputFile)
 
-	//summarizeRegions(mp)
+	summarizeRegions(mp)
 
-	if *args.DynamoDBTableName != "" {
-		pushToDatabase(*args.DynamoDBTableName, mp)
-		fmt.Println("Sent : ", recordsSent, " to Dynamo")
+	// if *args.DynamoDBTableName != "" {
+	// 	pushToDatabase(*args.DynamoDBTableName, mp)
+	// 	fmt.Println("Sent : ", recordsSent, " to Dynamo")
 	
-	}else {
-		fmt.Println("Skipping push to DB")
-	}
+	// }else {
+	// 	fmt.Println("Skipping push to DB")
+	// }
 
 }
 

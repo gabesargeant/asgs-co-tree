@@ -42,6 +42,14 @@ type ParentRegion struct {
 	LevelType  string `json:"LevelType,omitempty"`
 }
 
+type Region struct {
+	RegionID   string `json:"RegionID,omitempty"`
+	RegionName string `json:"RegionName,omitempty"`
+	LevelType  string `json:"LevelType,omitempty"`
+	ChildRegions  map[string]*Region  `json:"ChildRegions,omitempty"`
+
+}
+
 //LevelName, Level Code
 var levels = map[string]map[string]AsgsRegionNode{
 	"MB":    {},
@@ -54,6 +62,21 @@ var levels = map[string]map[string]AsgsRegionNode{
 	"LGA":   {},
 	"POA":   {},
 	"SSC":   {},
+	"GCCSA": {},
+}
+
+var lightlevels = map[string]map[string]Region{
+	"MB":    {},
+	"SA1":   {},
+	"SA2":   {},
+	"SA3":   {},
+	"SA4":   {},
+	"STATE": {},
+	"AUS":   {},
+	"LGA":   {},
+	"POA":   {},
+	"SSC":   {},
+	"GCCSA": {},
 }
 
 var totalRegions float64 = 0
@@ -80,17 +103,24 @@ func mergeLevels() map[string]AsgsRegionNode {
 //as each 'higher' region will require the lower to be there
 //to link it. And each child gets linked it's parent when
 //its parent gets its child.
-var levelSequence = []string{
-	"MB",
-	"SA1",
+var asgsLevelSequence = []string{
 	"SA2",
 	"SA3",
 	"SA4",
-	"STATE",
+	"STE",
 	"AUS",
+}
+
+var gccsaLevelSeq = []string{
+	"GCCSA",
+	"STE",
+	"AUS",
+}
+
+var lgaLevelSeq = []string{	
 	"LGA",
-	"POA",
-	"SSC",
+	"AUS",
+	"STATE",
 }
 
 var levelCodeMap = map[string]string{
@@ -105,6 +135,8 @@ var levelCodeMap = map[string]string{
 	"LGA":   "LGA_CODE_2020",
 	"POA":   "POA_CODE_2016",
 	"SSC":   "SSC_CODE_2016",
+	"GCCSA": "GCCSA_CODE_2016",
+
 }
 
 var levelNameMap = map[string]string{
@@ -119,6 +151,7 @@ var levelNameMap = map[string]string{
 	"LGA":   "LGA_NAME_2020",
 	"POA":   "POA_NAME_2016",
 	"SSC":   "SSC_NAME_2016",
+	"GCCSA": "GCCSA_NAME_2016",
 }
 
 //Australia,
@@ -137,9 +170,18 @@ var asgsChildLevel = map[string]string{
 	"SA4":   "SA3",
 	"STATE": "SA4",
 	"AUS":   "STATE",
-	"LGA":   "MB",
-	"POA":   "MB",
-	"SSC":   "MB",
+}
+
+var lgaChildLevels = map[string]string{
+	"LGA": "",
+	"STATE": "LGA",
+	"AUS":   "STATE",
+}
+
+var gccsaChildLevels = map[string]string {
+	"GCCSA": "",
+	"STATE": "GCCSA",
+	"AUS":   "STATE",
 }
 
 // //The many to many is a problem....hmm.
@@ -178,6 +220,9 @@ var asgsRegionArray = []string{
 	"POA_NAME_2016",
 	"SSC_CODE_2016",
 	"SSC_NAME_2016",
+	"GCCSA_CODE_2016",
+	"GCCSA_NAME_2016",
+
 }
 
 //getHeaderMap -
@@ -213,7 +258,7 @@ func buildNodes(headerMap map[string]int, r *csv.Reader) {
 			break
 		}
 
-		for _, currentLevel := range levelSequence {
+		for _, currentLevel := range  asgsLevelSequence {
 
 			levelCode := levelCodeMap[currentLevel]
 			levelName := levelNameMap[currentLevel]
@@ -222,16 +267,15 @@ func buildNodes(headerMap map[string]int, r *csv.Reader) {
 			iLevelCode := row[headerMap[levelCode]]
 			iLevelName := row[headerMap[levelName]]
 
-			region := levels[currentLevel][iLevelCode]
+			region := lightlevels[currentLevel][iLevelCode]
 
 			if region.RegionID == "" {
 
-				region.LevelIDName = levelCode
+				//region.LevelIDName = levelCode
 				region.LevelType = currentLevel
 				region.RegionName = iLevelName
 				region.RegionID = iLevelCode
-				region.ChildRegions = make(map[string]ChildRegion)
-				region.ParentRegions = make(map[string]ParentRegion)
+				region.ChildRegions = make(map[string]*Region)
 
 			}
 
@@ -239,7 +283,7 @@ func buildNodes(headerMap map[string]int, r *csv.Reader) {
 			child := asgsChildLevel[currentLevel]
 
 			if child == "" {
-				levels[currentLevel][iLevelCode] = region
+				lightlevels[currentLevel][iLevelCode] = region
 				continue
 			}
 
@@ -247,24 +291,24 @@ func buildNodes(headerMap map[string]int, r *csv.Reader) {
 
 			childRegionCode := row[headerMap[childLevelCode]]
 
-			childRegion := levels[child][childRegionCode]
+			childRegion := lightlevels[child][childRegionCode]
 
 			//Establish Relationships
-			pr := ParentRegion{}
-			pr.LevelType = region.LevelType
-			pr.RegionName = region.RegionName
-			pr.RegionID = region.RegionID
+			//pr := ParentRegion{}
+			//pr.LevelType = region.LevelType
+			//pr.RegionName = region.RegionName
+			//pr.RegionID = region.RegionID
 
-			childRegion.ParentRegions[region.RegionID] = pr
-			cr := ChildRegion{}
+			//childRegion.ParentRegions[region.RegionID] = pr
+			cr := Region{}
 			cr.LevelType = childRegion.LevelType
 			cr.RegionName = childRegion.RegionName
 			cr.RegionID = childRegion.RegionID
-			region.ChildRegions[childRegion.RegionID] = cr
+			region.ChildRegions[childRegion.RegionID] = &cr
 
 			//Set objects
-			levels[currentLevel][iLevelCode] = region
-			levels[child][childRegionCode] = childRegion
+			lightlevels[currentLevel][iLevelCode] = region
+			lightlevels[child][childRegionCode] = childRegion
 
 		}
 	}
