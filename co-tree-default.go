@@ -245,7 +245,7 @@ func getChildren(parent Region) {
 			tick++;
 			if(tick % 1000 == 0){
 				fmt.Println(tick)
-				fmt.Printf("Region map %d \n", len(regionMap));
+				//fmt.Printf("Region map %d \n", len(regionMap));
 			}
 			getChildren(parent.ChildRegions[childregion.RegionID])
 
