@@ -35,23 +35,11 @@ func main() {
 
 	outfolder = *args.OutputDir
 
-	createOutDir(outfolder)
-
-	mp := readCSV(inputFile)
-
-	summarizeRegions(mp)
-
-	// if *args.DynamoDBTableName != "" {
-	// 	pushToDatabase(*args.DynamoDBTableName, mp)
-	// 	fmt.Println("Sent : ", recordsSent, " to Dynamo")
-	
-	// }else {
-	// 	fmt.Println("Skipping push to DB")
-	// }
+	readCSV(inputFile)
 
 }
 
-func readCSV(file *os.File) map[string]AsgsRegionNode {
+func readCSV(file *os.File) map[string]Region {
 
 	br := bufio.NewReader(file)
 	r := csv.NewReader(br)
@@ -64,10 +52,9 @@ func readCSV(file *os.File) map[string]AsgsRegionNode {
 	headMap := getHeaderMap(firstLine)
 
 	buildNodes(headMap, r)
+	buildTree()
 
-	mp := mergeLevels()
-
-	return mp
+	return nil
 
 }
 
@@ -85,7 +72,6 @@ func getFile(file string) *os.File {
 
 func setArgs() Arguments {
 	a := Arguments{}
-	a.DynamoDBTableName = flag.String("n", "", "Name of the DynamoDB Table")
 	a.InputFile = flag.String("i", "cat.csv", "Input File for building tree")
 	a.OutputDir = flag.String("o", "./out/", "Output folder, if not set defaults to pwd ./out/ .")
 	return a
