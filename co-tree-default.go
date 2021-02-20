@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 )
 
 //Region region struct
@@ -20,6 +21,8 @@ type Region struct {
 
 //LevelName, Level Code
 var regionMap = make(map[string]Region)
+//regionsetsmap[parentcode][childcode][child]
+var regionSetsMap = make(map[string]map[string]Region)
 
 var totalRegions float64 = 0
 
@@ -35,6 +38,7 @@ var asgsLevelSequence = []string{
 	"SA3",
 	"SA2",
 	"SA1",
+	"MB",
 }
 
 var gccsaLevelSeq = []string{
@@ -224,19 +228,86 @@ func buildNodes(headerMap map[string]int, r *csv.Reader) {
 	}
 }
 
+var wg sync.WaitGroup
+
 func buildTree() {
 	rootNode := regionMap["AUS"]
 	fmt.Printf("Attempting to read %d \n", len(regionMap))
-	getChildren(rootNode)
 
+	sortNodes()
+	
+	// ste1 := regionMap["1"]
+	// ste2 := regionMap["2"]
+	// ste3 := regionMap["3"]
+	// ste4 := regionMap["4"]
+	// ste5 := regionMap["5"]
+	// ste6 := regionMap["6"]
+	// ste7 := regionMap["7"]
+	// ste8 := regionMap["8"]
+	// ste9 := regionMap["9"]
+	
+	// go getChildren(ste1)
+	// go getChildren(ste2)
+	// go getChildren(ste3)
+	// go getChildren(ste4)
+	// go getChildren(ste5)
+	// go getChildren(ste6)
+	// go getChildren(ste7)
+	// go getChildren(ste8)
+	// go getChildren(ste9)
+	// go getRootChildren(rootNode)
+	// wg.Wait()
+	getChild(rootNode)
 	printRegion("AUS", rootNode)
 
 }
 
 var tick int = 0;
 
+func sortNodes(){
+
+	for _, region := range regionMap {
+
+		childrenset := regionSetsMap[region.parentRegionID]
+		if childrenset == nil{
+			childrenset = make(map[string]Region)
+		}
+		//fmt.Println(len(childrenset))
+		childrenset[region.RegionID] = region;
+		regionSetsMap[region.parentRegionID] = childrenset
+
+	}
+}
+
+func getChild(root Region){
+
+	childRegionSet := regionSetsMap[root.RegionID];
+
+	for _, childRegion := range childRegionSet {
+
+		root.ChildRegions[childRegion.RegionID] = childRegion
+		getChild(childRegion);
+	}
+}
+
+func getRootChildren(parent Region) {
+	wg.Add(1)
+	for _, childregion := range regionMap {
+		if childregion.parentRegionID == parent.RegionID {				
+			parent.ChildRegions[childregion.RegionID] = childregion
+			
+			tick++;
+			if(tick % 1000 == 0){
+				fmt.Println(tick)
+				//fmt.Printf("Region map %d \n", len(regionMap));
+			}
+		}
+	}
+	wg.Done()
+}
+
 func getChildren(parent Region) {
-	
+	//wg.Add(1)
 	for _, childregion := range regionMap {
 		if childregion.parentRegionID == parent.RegionID {			
 			
@@ -251,6 +322,8 @@ func getChildren(parent Region) {
 
 		}
 	}
+	//wg.Done()
+
 }
 
 //only for testing
