@@ -35,7 +35,6 @@ var asgsLevelSequence = []string{
 	"SA3",
 	"SA2",
 	"SA1",
-	"MB",
 }
 
 var gccsaLevelSeq = []string{
@@ -57,7 +56,7 @@ var levelCodeMap = map[string]string{
 	"SA2":   "SA2_MAINCODE_2016",
 	"SA3":   "SA3_CODE_2016",
 	"SA4":   "SA4_CODE_2016",
-	"STATE": "STATE_CODE_2016",
+	"STE": "STATE_CODE_2016",
 	"AUS":   "AUS_CODE_2016",
 	"LGA":   "LGA_CODE_2020",
 	"POA":   "POA_CODE_2016",
@@ -72,7 +71,7 @@ var levelNameMap = map[string]string{
 	"SA2":   "SA2_NAME_2016",
 	"SA3":   "SA3_NAME_2016",
 	"SA4":   "SA4_NAME_2016",
-	"STATE": "STATE_NAME_2016",
+	"STE": "STATE_NAME_2016",
 	"AUS":   "AUS_NAME_2016",
 	"LGA":   "LGA_NAME_2020",
 	"POA":   "POA_NAME_2016",
@@ -94,7 +93,7 @@ var asgsChildLevel = map[string]string{
 	"SA2":   "SA1",
 	"SA3":   "SA2",
 	"SA4":   "SA3",
-	"STATE": "SA4",
+	"STE": "SA4",
 	"AUS":   "STATE",
 }
 
@@ -103,8 +102,8 @@ var asgsParentLevel = map[string]string{
 	"SA1":  "SA2",
 	"SA2":  "SA3",
 	"SA3":  "SA4",
-	"SA4":  "STATE",
-	"SATE": "AUS",
+	"SA4":  "STE",
+	"STE": "AUS",
 	"AUS":  "",
 }
 
@@ -208,17 +207,18 @@ func buildNodes(headerMap map[string]int, r *csv.Reader) {
 			//Add parent relationship
 			parent := asgsParentLevel[currentLevel]
 			//fmt.Printf("Parent %d ", parent)
-			parentRegionID :=  row[headerMap[levelCodeMap[parent]]]  
-			
-			fmt.Printf("region: %s \n", region.RegionID)
-			fmt.Printf("parent: %s \n", parentRegionID)
-			
-			region.parentRegionID = parentRegionID
-
 			if parent == "" {
 				regionMap[iLevelCode] = region
 				continue
 			}
+			parentRegionID :=  row[headerMap[levelCodeMap[parent]]]  
+			
+			//fmt.Printf("region: %s \n", region.RegionID)
+			//fmt.Printf("parent: %s \n", parentRegionID)
+			
+			region.parentRegionID = parentRegionID
+
+			regionMap[iLevelCode] = region
 
 		}
 	}
@@ -233,16 +233,22 @@ func buildTree() {
 
 }
 
+var tick int = 0;
+
 func getChildren(parent Region) {
 	
 	for _, childregion := range regionMap {
-
 		if childregion.parentRegionID == parent.RegionID {			
-			fmt.Printf("Child Region %s ", childregion.parentRegionID)
-			fmt.Printf("Parent Region %s ", parent.RegionID)
 			
 			parent.ChildRegions[childregion.RegionID] = childregion
+			delete(regionMap, childregion.RegionID)
+			tick++;
+			if(tick % 1000 == 0){
+				fmt.Println(tick)
+				fmt.Printf("Region map %d \n", len(regionMap));
+			}
 			getChildren(parent.ChildRegions[childregion.RegionID])
+
 		}
 	}
 }
