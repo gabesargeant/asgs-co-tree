@@ -7,31 +7,50 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sync"
 )
 
 //Region region struct
 type Region struct {
 	RegionID       string `json:"RegionID,omitempty"`
 	parentRegionID string
-	RegionName     string             `json:"RegionName,omitempty"`
-	LevelType      string             `json:"LevelType,omitempty"`
+	RegionName     string            `json:"RegionName,omitempty"`
+	LevelType      string            `json:"LevelType,omitempty"`
 	ChildRegions   map[string]Region `json:"ChildRegions,omitempty"`
 }
 
 //LevelName, Level Code
-var regionMap = make(map[string]Region)
+var asgsRegionMap = make(map[string]Region)
+var lgaRegionMap = make(map[string]Region)
+var gccsaRegionMap = make(map[string]Region)
+var sscRegionMap = make(map[string]Region)
+var poaRegionMap = make(map[string]Region)
+
+var regionMap = map[string]map[string]Region{
+	"asgs":  asgsRegionMap,
+	"lga":   lgaRegionMap,
+	"gccsa": gccsaRegionMap,
+	"ssc":   sscRegionMap,
+	"poa":   poaRegionMap,
+}
+
 //regionsetsmap[parentcode][childcode][child]
-var regionSetsMap = make(map[string]map[string]Region)
+var asgsRegionSetsMap = make(map[string]map[string]Region)
+var lgaRegionSetsMap = make(map[string]map[string]Region)
+var gccsaRegionSetsMap = make(map[string]map[string]Region)
+var sscRegionSetsMap = make(map[string]map[string]Region)
+var poaRegionSetsMap = make(map[string]map[string]Region)
+
+var regionSetsMaps = map[string]map[string]map[string]Region{
+	"asgs":  asgsRegionSetsMap,
+	"lga":   lgaRegionSetsMap,
+	"gccsa": gccsaRegionSetsMap,
+	"ssc":   sscRegionSetsMap,
+	"poa":   poaRegionSetsMap,
+}
 
 var totalRegions float64 = 0
 
-//The order of regions in this array is significant.
-//I need to build the nodes from the MeshBlocks up.
-//as each 'higher' region will require the lower to be there
-//to link it. And each child gets linked it's parent when
-//its parent gets its child.
-var asgsLevelSequence = []string{
+var asgsLevelSeq = []string{
 	"AUS",
 	"STE",
 	"SA4",
@@ -42,15 +61,37 @@ var asgsLevelSequence = []string{
 }
 
 var gccsaLevelSeq = []string{
-	"GCCSA",
-	"STE",
 	"AUS",
+	"STE",
+	"GCCSA",
 }
 
 var lgaLevelSeq = []string{
-	"LGA",
 	"AUS",
-	"STATE",
+	"STE",
+	"LGA",
+}
+
+var sscLevelSeq = []string{
+	"AUS",
+	"STE",
+	"SSC",
+	//"MB",
+}
+
+var poaLevelSeq = []string{
+	"AUS",
+	"STE",
+	"POA",
+	//"MB",
+}
+
+var levelSequences = map[string][]string{
+	"asgs":  asgsLevelSeq,
+	"lga":   lgaLevelSeq,
+	"ssc":   sscLevelSeq,
+	"poa":   poaLevelSeq,
+	"gccsa": gccsaLevelSeq,
 }
 
 var levelCodeMap = map[string]string{
@@ -60,7 +101,7 @@ var levelCodeMap = map[string]string{
 	"SA2":   "SA2_MAINCODE_2016",
 	"SA3":   "SA3_CODE_2016",
 	"SA4":   "SA4_CODE_2016",
-	"STE": "STATE_CODE_2016",
+	"STE":   "STATE_CODE_2016",
 	"AUS":   "AUS_CODE_2016",
 	"LGA":   "LGA_CODE_2020",
 	"POA":   "POA_CODE_2016",
@@ -75,7 +116,7 @@ var levelNameMap = map[string]string{
 	"SA2":   "SA2_NAME_2016",
 	"SA3":   "SA3_NAME_2016",
 	"SA4":   "SA4_NAME_2016",
-	"STE": "STATE_NAME_2016",
+	"STE":   "STATE_NAME_2016",
 	"AUS":   "AUS_NAME_2016",
 	"LGA":   "LGA_NAME_2020",
 	"POA":   "POA_NAME_2016",
@@ -83,49 +124,47 @@ var levelNameMap = map[string]string{
 	"GCCSA": "GCCSA_NAME_2016",
 }
 
-//Australia,
-//States
-//SA4
-//SA3
-//SA2
-//SA1
-//MB -- LGA -- POA -- SSC
-//ChildLevles Key = the current region, value = it's child region
-var asgsChildLevel = map[string]string{
-	"MB":    "",
-	"SA1":   "MB",
-	"SA2":   "SA1",
-	"SA3":   "SA2",
-	"SA4":   "SA3",
-	"STE": "SA4",
-	"AUS":   "STATE",
-}
-
 var asgsParentLevel = map[string]string{
-	"MB":   "SA1",
-	"SA1":  "SA2",
-	"SA2":  "SA3",
-	"SA3":  "SA4",
-	"SA4":  "STE",
+	"MB":  "SA1",
+	"SA1": "SA2",
+	"SA2": "SA3",
+	"SA3": "SA4",
+	"SA4": "STE",
 	"STE": "AUS",
-	"AUS":  "",
+	"AUS": "",
 }
 
-var lgaChildLevels = map[string]string{
-	"LGA":   "",
-	"STATE": "LGA",
-	"AUS":   "STATE",
+var lgaParentLevel = map[string]string{
+	"LGA": "STE",
+	"STE": "AUS",
+	"AUS": "",
 }
 
-var gccsaChildLevels = map[string]string{
-	"GCCSA": "",
-	"STATE": "GCCSA",
-	"AUS":   "STATE",
+var gccsaParentLevel = map[string]string{
+	"GCCSA": "STE",
+	"STE":   "AUS",
+	"AUS":   "",
 }
 
-var skipLevel = map[string]string{
-	"MB":  "SKIP",
-	"SA1": "SKIP",
+var sscParentLevel = map[string]string{
+	"MB":  "SSC",
+	"SSC": "STE",
+	"STE": "AUS",
+	"AUS": "",
+}
+var poaParentLevel = map[string]string{
+	"MB":  "POA",
+	"POA": "STE",
+	"STE": "AUS",
+	"AUS": "",
+}
+
+var parentLevel = map[string]map[string]string{
+	"asgs":  asgsParentLevel,
+	"lga":   lgaParentLevel,
+	"gccsa": gccsaParentLevel,
+	"ssc":   sscParentLevel,
+	"poa":   poaParentLevel,
 }
 
 var asgsRegionArray = []string{
@@ -176,6 +215,51 @@ func getHeaderMap(firstLine []string) map[string]int {
 	return m
 }
 
+func buildNodeSet(headerMap map[string]int, row []string, level string, levelSequence []string) {
+
+	for _, currentLevel := range levelSequence {
+
+		levelCode := levelCodeMap[currentLevel]
+		levelName := levelNameMap[currentLevel]
+
+		//instanceLevelCode
+		iLevelCode := row[headerMap[levelCode]]
+		iLevelName := row[headerMap[levelName]]
+
+		region := regionMap[level][iLevelCode]
+
+		if region.RegionID == "" {
+
+			//region.LevelIDName = levelCode
+			region.LevelType = currentLevel
+
+			region.RegionName = iLevelName
+			region.RegionID = iLevelCode
+			region.ChildRegions = make(map[string]Region)
+
+		}
+
+		//Add parent relationship
+		parent := parentLevel[level][currentLevel]
+		//fmt.Printf("Parent %d ", parent)
+		if parent == "" {
+
+			regionMap[level][iLevelCode] = region
+			continue
+		}
+		parentRegionID := row[headerMap[levelCodeMap[parent]]]
+
+		//fmt.Printf("region: %s \n", region.RegionID)
+		//fmt.Printf("parent: %s \n", parentRegionID)
+
+		region.parentRegionID = parentRegionID
+
+		regionMap[level][iLevelCode] = region
+
+	}
+
+}
+
 func buildNodes(headerMap map[string]int, r *csv.Reader) {
 
 	//outter loop, read a row.
@@ -186,147 +270,61 @@ func buildNodes(headerMap map[string]int, r *csv.Reader) {
 			break
 		}
 
-		for _, currentLevel := range asgsLevelSequence {
+		for level, levelSequence := range levelSequences {
 
-			levelCode := levelCodeMap[currentLevel]
-			levelName := levelNameMap[currentLevel]
-
-			//instanceLevelCode
-			iLevelCode := row[headerMap[levelCode]]
-			iLevelName := row[headerMap[levelName]]
-
-			region := regionMap[iLevelCode]
-
-			if region.RegionID == "" {
-
-				//region.LevelIDName = levelCode
-				region.LevelType = currentLevel
-
-				region.RegionName = iLevelName
-				region.RegionID = iLevelCode
-				region.ChildRegions = make(map[string]Region)
-
-			}
-
-			//Add parent relationship
-			parent := asgsParentLevel[currentLevel]
-			//fmt.Printf("Parent %d ", parent)
-			if parent == "" {
-				regionMap[iLevelCode] = region
-				continue
-			}
-			parentRegionID :=  row[headerMap[levelCodeMap[parent]]]  
-			
-			//fmt.Printf("region: %s \n", region.RegionID)
-			//fmt.Printf("parent: %s \n", parentRegionID)
-			
-			region.parentRegionID = parentRegionID
-
-			regionMap[iLevelCode] = region
-
+			buildNodeSet(headerMap, row, level, levelSequence)
 		}
+
 	}
 }
 
-var wg sync.WaitGroup
-
 func buildTree() {
-	rootNode := regionMap["AUS"]
+
 	fmt.Printf("Attempting to read %d \n", len(regionMap))
 
 	sortNodes()
-	
-	// ste1 := regionMap["1"]
-	// ste2 := regionMap["2"]
-	// ste3 := regionMap["3"]
-	// ste4 := regionMap["4"]
-	// ste5 := regionMap["5"]
-	// ste6 := regionMap["6"]
-	// ste7 := regionMap["7"]
-	// ste8 := regionMap["8"]
-	// ste9 := regionMap["9"]
-	
-	// go getChildren(ste1)
-	// go getChildren(ste2)
-	// go getChildren(ste3)
-	// go getChildren(ste4)
-	// go getChildren(ste5)
-	// go getChildren(ste6)
-	// go getChildren(ste7)
-	// go getChildren(ste8)
-	// go getChildren(ste9)
-	// go getRootChildren(rootNode)
-	// wg.Wait()
-	getChild(rootNode)
-	printRegion("AUS", rootNode)
 
-}
-
-var tick int = 0;
-
-func sortNodes(){
-
-	for _, region := range regionMap {
-
-		childrenset := regionSetsMap[region.parentRegionID]
-		if childrenset == nil{
-			childrenset = make(map[string]Region)
-		}
-		//fmt.Println(len(childrenset))
-		childrenset[region.RegionID] = region;
-		regionSetsMap[region.parentRegionID] = childrenset
-
+	for level, rgnMap := range regionMap {
+		fmt.Printf("Level %s \n", level)
+		rootNode := rgnMap["AUS"]
+		getChild(level, rootNode)
+		printRegion(level, rootNode)
 	}
+
 }
 
-func getChild(root Region){
+var tick int = 0
 
-	childRegionSet := regionSetsMap[root.RegionID];
+func sortNodes() {
+
+	for level, rgnMap := range regionMap {
+
+		for _, region := range rgnMap {
+
+			childrenset := regionSetsMaps[level][region.parentRegionID]
+			if childrenset == nil {
+				childrenset = make(map[string]Region)
+			}
+			//fmt.Println(len(childrenset))
+			childrenset[region.RegionID] = region
+			regionSetsMaps[level][region.parentRegionID] = childrenset
+
+		}
+	}
+
+}
+
+func getChild(level string, root Region) {
+
+	childRegionSet := regionSetsMaps[level][root.RegionID]
 
 	for _, childRegion := range childRegionSet {
 
 		root.ChildRegions[childRegion.RegionID] = childRegion
-		getChild(childRegion);
+		getChild(level, childRegion)
 	}
 }
 
-func getRootChildren(parent Region) {
-	wg.Add(1)
-	for _, childregion := range regionMap {
-		if childregion.parentRegionID == parent.RegionID {				
-			parent.ChildRegions[childregion.RegionID] = childregion
-			
-			tick++;
-			if(tick % 1000 == 0){
-				fmt.Println(tick)
-				//fmt.Printf("Region map %d \n", len(regionMap));
-			}
-		}
-	}
-	wg.Done()
-}
-
-func getChildren(parent Region) {
-	//wg.Add(1)
-	for _, childregion := range regionMap {
-		if childregion.parentRegionID == parent.RegionID {			
-			
-			parent.ChildRegions[childregion.RegionID] = childregion
-			delete(regionMap, childregion.RegionID)
-			tick++;
-			if(tick % 1000 == 0){
-				fmt.Println(tick)
-				//fmt.Printf("Region map %d \n", len(regionMap));
-			}
-			getChildren(parent.ChildRegions[childregion.RegionID])
-
-		}
-	}
-	//wg.Done()
-
-}
-
-//only for testing
 func printRegion(id string, out Region) {
 
 	dataFile, err := os.Create(outfolder + id + ".json")
