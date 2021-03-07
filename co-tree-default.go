@@ -296,14 +296,14 @@ func sortNodes() {
 	for level, rgnMap := range regionMap {
 
 		for _, region := range rgnMap {
-
-			childrenset := regionSetsMaps[level][region.parentRegionID]
-			if childrenset == nil {
-				childrenset = make(map[string]Region)
+			
+			childrenset := regionSetsMap[level][region.parentRegionID[level]]
+			if childrenset.ChildRegions == nil {
+				childrenset.ChildRegions = make(map[string]map[string]Region)
 			}
 			//fmt.Println(len(childrenset))
-			childrenset[region.RegionID] = region
-			regionSetsMaps[level][region.parentRegionID] = childrenset
+			childrenset.ChildRegions[level][region.RegionID] = region
+			regionSetsMap[level][region.parentRegionID[level]] = childrenset
 
 		}
 	}
