@@ -26,7 +26,7 @@ var sscRegionMap = make(map[string]Region)
 var poaRegionMap = make(map[string]Region)
 
 var regionMap = make(map[string]map[string]Region)
-var regionSetsMap = make(map[string]map[string]Region)
+var regionSetsMap = make(map[string]map[string]map[string]Region)
 
 var childrenregionsMap = make(map[string]map[string]Region)
 
@@ -63,8 +63,8 @@ var asgsParentSeq = map[string][]string{
 	"SA4":   {"STE"},
 	"SA3":   {"SA3"},
 	"SA2":   {"SA3", "SUA"},
-	"SA1":   {"SA2", "RA", "UCL", "ILOC"},
-	"MB":    {"SA1"},
+	//"SA1":   {"SA2", "RA", "UCL", "ILOC"},
+	//"MB":    {"SA1"},
 	"SOS":   {"STE"},
 	"SOSR":  {"SOS"},
 	"UCL":   {"SOSR"},
@@ -252,6 +252,7 @@ func buildNodeSet(headerMap map[string]int, row []string, parentSeq map[string][
 
 		for _, parentRegion := range parentRegions {
 			parentRegionID := row[headerMap[levelCodeMap[parentRegion]]]
+
 			region.parentRegionID[parentRegion] = parentRegionID
 		}
 
@@ -288,8 +289,8 @@ func buildTree() {
 
 	fmt.Printf("Level %s \n", "AUS")
 	rootNode := regionMap["AUS"]["AUS"]
-	getChild("AUS", rootNode)
-	printRegion("AUS", rootNode)
+	node := getChild(rootNode)
+	printRegion("AUS", node)
 
 }
 
@@ -305,44 +306,41 @@ func sortNodes() {
 
 				//childregion := regionSetsMap[level][pregion]
 
-				set := regionSetsMap[lvl]
+				set := regionSetsMap[pRegion]
 				if set == nil {
-					set = make(map[string]Region)
+					set = make(map[string]map[string]Region)
+					regionSetsMap[pRegion] = set
 				}
-				regionSetsMap[lvl] = set
+				
 
-				regionSetsMap[lvl][pRegion] = region
+				rSet := regionSetsMap[pRegion][lvl]
+				if(rSet == nil){
+					rSet = make(map[string]Region)
+					regionSetsMap[pRegion][lvl] = rSet
+				}
+
+				regionSetsMap[pRegion][lvl][region.RegionID] = region
 
 			}
 		}
 	}
 }
 
-func getChild(level string, root Region) {
-	fmt.Println(len(regionSetsMap))
+func getChild(root Region) Region {
+	//fmt.Println(len(regionSetsMap))
 
-	for lvl, regionSet := range regionSetsMap {
-		fmt.Println("level ", lvl)
+	children := regionSetsMap[root.RegionID]
 
-		r := regionSet[root.RegionID]
-		if r.RegionID != "" {
+	root.ChildRegions = children
 
-			if root.ChildRegions[lvl] == nil {
-				root.ChildRegions[lvl] = make(map[string]Region)
-			}
+	for i, childMap := range children{
 
-			root.ChildRegions[lvl][r.RegionID] = r
-
-		}
-
+		for ii, child := range childMap{
+			 childMap[ii] = getChild(child)
+		} 
+		children[i] = childMap
 	}
-	for _, rootmap := range root.ChildRegions {
-		for _, r := range rootmap {
-			getChild(r.LevelType, r)
-
-		}
-	}
-	//
+	return root
 }
 
 func printRegion(id string, out Region) {
