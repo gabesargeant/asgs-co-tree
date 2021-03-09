@@ -15,18 +15,13 @@ type Region struct {
 	parentRegionID map[string]string
 	RegionName     string                       `json:"RegionName,omitempty"`
 	LevelType      string                       `json:"LevelType,omitempty"`
-	ChildRegions   map[string]map[string]Region `json:"ChildRegions,omitempty"`
+	ChildRegions   map[string]Region `json:"ChildRegions,omitempty"`
 }
 
 //LevelName, Level Code
-var asgsRegionMap = make(map[string]Region)
-var lgaRegionMap = make(map[string]Region)
-var gccsaRegionMap = make(map[string]Region)
-var sscRegionMap = make(map[string]Region)
-var poaRegionMap = make(map[string]Region)
 
-var regionMap = make(map[string]map[string]Region)
-var regionSetsMap = make(map[string]map[string]map[string]Region)
+var regionMap = make(map[string]Region)
+var regionSetsMap = make(map[string]map[string]Region)
 
 var childrenregionsMap = make(map[string]map[string]Region)
 
@@ -63,8 +58,8 @@ var asgsParentSeq = map[string][]string{
 	"SA4":   {"STE"},
 	"SA3":   {"SA3"},
 	"SA2":   {"SA3", "SUA"},
-	//"SA1":   {"SA2", "RA", "UCL", "ILOC"},
-	//"MB":    {"SA1"},
+	"SA1":   {"SA2", "RA", "UCL", "ILOC"},
+	"MB":    {"SA1"},
 	"SOS":   {"STE"},
 	"SOSR":  {"SOS"},
 	"UCL":   {"SOSR"},
@@ -230,11 +225,7 @@ func buildNodeSet(headerMap map[string]int, row []string, parentSeq map[string][
 		iLevelCode := row[headerMap[levelCode]]
 		iLevelName := row[headerMap[levelName]]
 
-		if regionMap[currentLevel] == nil {
-			regionMap[currentLevel] = make(map[string]Region)
-		}
-
-		region := regionMap[currentLevel][iLevelCode]
+		region := regionMap[currentLevel+iLevelCode]
 
 		if region.RegionID == "" {
 
@@ -243,7 +234,7 @@ func buildNodeSet(headerMap map[string]int, row []string, parentSeq map[string][
 			region.parentRegionID = make(map[string]string)
 			region.RegionName = iLevelName
 			region.RegionID = iLevelCode
-			region.ChildRegions = make(map[string]map[string]Region)
+			region.ChildRegions = make(map[string]Region)
 
 		}
 
@@ -253,10 +244,10 @@ func buildNodeSet(headerMap map[string]int, row []string, parentSeq map[string][
 		for _, parentRegion := range parentRegions {
 			parentRegionID := row[headerMap[levelCodeMap[parentRegion]]]
 
-			region.parentRegionID[parentRegion] = parentRegionID
+			region.parentRegionID[parentRegion+parentRegionID] = parentRegionID
 		}
 
-		regionMap[currentLevel][iLevelCode] = region
+		regionMap[currentLevel+iLevelCode] = region
 		//fmt.Println("length ", (regionMap[currentLevel]))
 
 	}
@@ -288,59 +279,54 @@ func buildTree() {
 	sortNodes()
 
 	fmt.Printf("Level %s \n", "AUS")
-	rootNode := regionMap["AUS"]["AUS"]
+	fmt.Println(len(regionSetsMap), "len region sets map")
+	rootNode := regionMap["AUSAUS"]
 	node := getChild(rootNode)
+
 	printRegion("AUS", node)
 
+
+}
+
+
+func getChild(root Region) Region {
+	//fmt.Println(len(regionSetsMap))
+
+	children := regionSetsMap[root.LevelType+root.RegionID]
+
+	
+
+	for i, c := range children {
+		root.ChildRegions[i] = getChild(c)
+	}
+
+	root.ChildRegions = children
+
+	return root;
 }
 
 var tick int = 0
 
 func sortNodes() {
 
-	for _, rgnMap := range regionMap {
+	for _, region  := range regionMap {
 
-		for _, region := range rgnMap {
-
-			for lvl, pRegion := range region.parentRegionID {
+			for q, _ := range region.parentRegionID {
 
 				//childregion := regionSetsMap[level][pregion]
 
-				set := regionSetsMap[pRegion]
+				set := regionSetsMap[q]
 				if set == nil {
-					set = make(map[string]map[string]Region)
-					regionSetsMap[pRegion] = set
+					set = make(map[string]Region)
+					regionSetsMap[q] = set
 				}
 				
-
-				rSet := regionSetsMap[pRegion][lvl]
-				if(rSet == nil){
-					rSet = make(map[string]Region)
-					regionSetsMap[pRegion][lvl] = rSet
-				}
-
-				regionSetsMap[pRegion][lvl][region.RegionID] = region
+				regionSetsMap[q][region.LevelType+region.RegionID] = region
 
 			}
-		}
+		
 	}
-}
 
-func getChild(root Region) Region {
-	//fmt.Println(len(regionSetsMap))
-
-	children := regionSetsMap[root.RegionID]
-
-	root.ChildRegions = children
-
-	for i, childMap := range children{
-
-		for ii, child := range childMap{
-			 childMap[ii] = getChild(child)
-		} 
-		children[i] = childMap
-	}
-	return root
 }
 
 func printRegion(id string, out Region) {
