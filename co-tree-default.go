@@ -12,184 +12,14 @@ import (
 //Region region struct
 type Region struct {
 	RegionID       string `json:"RegionID,omitempty"`
-	parentRegionID map[string]string
-	RegionName     string                       `json:"RegionName,omitempty"`
-	LevelType      string                       `json:"LevelType,omitempty"`
+	parentRegionID string
+	RegionName     string            `json:"RegionName,omitempty"`
+	LevelType      string            `json:"LevelType,omitempty"`
 	ChildRegions   map[string]Region `json:"ChildRegions,omitempty"`
 }
 
 //LevelName, Level Code
-
-var regionMap = make(map[string]Region)
-var regionSetsMap = make(map[string]map[string]Region)
-
-var childrenregionsMap = make(map[string]map[string]Region)
-
 var totalRegions float64 = 0
-
-var asgsLevelSeq = map[string][]string{
-	"AUS":   {"STE"},
-	"STE":   {"SA4", "SOS", "GCCSA", "IREG", "SUA", "RA", "POA", "CED", "SED", "SSC", "ADD", "NRMR", "LGA"},
-	"SA4":   {"SA3"},
-	"SA3":   {"SA2"},
-	"SA2":   {"SA1"},
-	"SA1":   {"MB"},
-	"MB":    {},
-	"SOS":   {"SOSR"},
-	"SOSR":  {"UCL"},
-	"UCL":   {"SA1"},
-	"GCCSA": {"SA4"},
-	"SUA":   {"SA3"},
-	"RA":    {"SA1"},
-	"IRGE":  {"IARE"},
-	"IARE":  {"ILOC"},
-	"ILOC":  {"SA1"},
-	"POA":   {},
-	"CED":   {},
-	"SED":   {},
-	"SSC":   {},
-	"ADD":   {},
-	"NRMR":  {},
-	"LGA":   {},
-}
-var asgsParentSeq = map[string][]string{
-	"AUS":   {},
-	"STE":   {"AUS"},
-	"SA4":   {"STE"},
-	"SA3":   {"SA3"},
-	"SA2":   {"SA3", "SUA"},
-	"SA1":   {"SA2", "RA", "UCL", "ILOC"},
-	"MB":    {"SA1"},
-	"SOS":   {"STE"},
-	"SOSR":  {"SOS"},
-	"UCL":   {"SOSR"},
-	"GCCSA": {"STE"},
-	"SUA":   {"STE"},
-	"RA":    {"STE"},
-	"IREG":  {"STE"},
-	"IARE":  {"IREG"},
-	"ILOC":  {"IARE"},
-	"POA":   {"STE"},
-	"CED":   {"STE"},
-	"SED":   {"STE"},
-	"SSC":   {"STE"},
-	"ADD":   {"STE"},
-	"NRMR":  {"STE"},
-	"LGA":   {"STE"},
-}
-
-var parentLevel = make(map[string]map[string]string)
-
-var levelCodeMap = map[string]string{
-	"MB":    "MB_CODE_2016",
-	"SA1":   "SA1_MAINCODE_2016",
-	"SA2":   "SA2_MAINCODE_2016",
-	"SA3":   "SA3_CODE_2016",
-	"SA4":   "SA4_CODE_2016",
-	"GCCSA": "GCCSA_CODE_2016",
-	"STE":   "STATE_CODE_2016",
-	"AUS":   "AUS_CODE_2016",
-	"DZN":   "DZN_CODE_2016",
-	"LGA":   "LGA_CODE_2016",
-	"POA":   "POA_CODE_2016",
-	"ADD":   "ADD_CODE_2016",
-	"NRMR":  "NRMR_CODE_2016",
-	"SSC":   "SSC_CODE_2016",
-	"TR":    "TR_CODE_2016",
-	"RA":    "RA_CODE_2016",
-	"ILOC":  "ILOC_CODE_2016",
-	"IARE":  "IARE_CODE_2016",
-	"IREG":  "IREG_CODE_2016",
-	"UCL":   "UCL_CODE_2016",
-	"SOSR":  "SOSR_CODE_2016",
-	"SOS":   "SOS_CODE_2016",
-	"SUA":   "SUA_CODE_2016",
-	"SED":   "SED_CODE_2016",
-	"CED":   "CED_CODE_2016",
-}
-
-var levelNameMap = map[string]string{
-	"MB":    "MB_CATEGORY_NAME_2016",
-	"SA1":   "SA1_NAME_2016",
-	"SA2":   "SA2_NAME_2016",
-	"SA3":   "SA3_NAME_2016",
-	"SA4":   "SA4_NAME_2016",
-	"GCCSA": "GCCSA_NAME_2016",
-	"STE":   "STATE_NAME_2016",
-	"AUS":   "AUS_NAME_2016",
-	"DZN":   "DZN_NAME_2016",
-	"LGA":   "LGA_NAME_2016",
-	"POA":   "POA_NAME_2016",
-	"ADD":   "ADD_NAME_2016",
-	"NRMR":  "NRMR_NAME_2016",
-	"SSC":   "SSC_NAME_2016",
-	"TR":    "TR_NAME_2016",
-	"RA":    "RA_NAME_2016",
-	"ILOC":  "ILOC_NAME_2016",
-	"IARE":  "IARE_NAME_2016",
-	"IREG":  "IREG_NAME_2016",
-	"UCL":   "UCL_NAME_2016",
-	"SOSR":  "SOSR_NAME_2016",
-	"SOS":   "SOS_NAME_2016",
-	"SUA":   "SUA_NAME_2016",
-	"SED":   "SED_NAME_2016",
-	"CED":   "CED_NAME_2016",
-}
-
-var asgsRegionArray = []string{
-	"MB_CODE_2016",
-	"MB_CATEGORY_NAME_2016",
-	"SA1_MAINCODE_2016",
-	"SA1_NAME_2016",
-	"SA2_MAINCODE_2016",
-	"SA2_NAME_2016",
-	"SA3_CODE_2016",
-	"SA3_NAME_2016",
-	"SA4_CODE_2016",
-	"SA4_NAME_2016",
-	"GCCSA_CODE_2016",
-	"GCCSA_NAME_2016",
-	"STATE_CODE_2016",
-	"STATE_NAME_2016",
-	"AUS_CODE_2016",
-	"AUS_NAME_2016",
-	"DZN_CODE_2016",
-	"DZN_NAME_2016",
-	"LGA_NAME_2015",
-	"LGA_CODE_2015",
-	"LGA_CODE_2016",
-	"LGA_NAME_2016",
-	"POA_CODE_2016",
-	"POA_NAME_2016",
-	"ADD_CODE_2016",
-	"ADD_NAME_2016",
-	"NRMR_CODE_2016",
-	"NRMR_NAME_2016",
-	"SSC_CODE_2016",
-	"SSC_NAME_2016",
-	"TR_CODE_2016",
-	"TR_NAME_2016",
-	"RA_CODE_2016",
-	"RA_NAME_2016",
-	"ILOC_CODE_2016",
-	"ILOC_NAME_2016",
-	"IARE_CODE_2016",
-	"IARE_NAME_2016",
-	"IREG_CODE_2016",
-	"IREG_NAME_2016",
-	"UCL_CODE_2016",
-	"UCL_NAME_2016",
-	"SOSR_CODE_2016",
-	"SOSR_NAME_2016",
-	"SOS_CODE_2016",
-	"SOS_NAME_2016",
-	"SUA_CODE_2016",
-	"SUA_NAME_2016",
-	"SED_CODE_2016",
-	"SED_NAME_2016",
-	"CED_CODE_2016",
-	"CED_NAME_2016",
-}
 
 //getHeaderMap -
 func getHeaderMap(firstLine []string) map[string]int {
@@ -214,9 +44,9 @@ func getHeaderMap(firstLine []string) map[string]int {
 	return m
 }
 
-func buildNodeSet(headerMap map[string]int, row []string, parentSeq map[string][]string) {
+func buildNodeSet(headerMap map[string]int, row []string, parentSeq map[string][]string, regionMap map[string]Region) map[string]Region {
 
-	for currentLevel, parentRegions := range parentSeq {
+	for currentLevel, parent := range parentSeq {
 
 		levelCode := levelCodeMap[currentLevel]
 		levelName := levelNameMap[currentLevel]
@@ -225,13 +55,11 @@ func buildNodeSet(headerMap map[string]int, row []string, parentSeq map[string][
 		iLevelCode := row[headerMap[levelCode]]
 		iLevelName := row[headerMap[levelName]]
 
-		region := regionMap[currentLevel+iLevelCode]
+		region := regionMap[iLevelCode]
 
 		if region.RegionID == "" {
 
-			//region.LevelIDName = levelCode
-			region.LevelType = currentLevel
-			region.parentRegionID = make(map[string]string)
+			region.LevelType = currentLevel			
 			region.RegionName = iLevelName
 			region.RegionID = iLevelCode
 			region.ChildRegions = make(map[string]Region)
@@ -239,93 +67,77 @@ func buildNodeSet(headerMap map[string]int, row []string, parentSeq map[string][
 		}
 
 		//Add parent relationship
-		//parent := parentLevel[level][currentLevel]
-
-		for _, parentRegion := range parentRegions {
-			parentRegionID := row[headerMap[levelCodeMap[parentRegion]]]
-
-			region.parentRegionID[parentRegion+parentRegionID] = parentRegionID
+		if (len(parent)!=0){
+			parentlevel := levelCodeMap[parent[0]]
+			parentRegionID := row[headerMap[parentlevel]]
+			region.parentRegionID = parentRegionID
 		}
+		
 
-		regionMap[currentLevel+iLevelCode] = region
+		regionMap[iLevelCode] = region
 		//fmt.Println("length ", (regionMap[currentLevel]))
 
 	}
-
+	return regionMap;
 }
 
-func buildNodes(headerMap map[string]int, r *csv.Reader) {
+func buildNodes(name string, headerMap map[string]int, r *csv.Reader, parentSeq map[string][]string) {
 
-	//outter loop, read a row.
-	tick = 0
+	regionMap := make(map[string]Region)
+
 	for {
-
 		row, err := r.Read()
 		if err == io.EOF {
 			//for the last record, write the buffer without the commaNewLine
 			break
 		}
-
-		buildNodeSet(headerMap, row, asgsParentSeq)
-		//fmt.Println(tick)
-		tick++
+		regionMap = buildNodeSet(headerMap, row, parentSeq, regionMap)	
 	}
+
+	buildTree(name, regionMap)
 }
 
-func buildTree() {
+func buildTree(name string, regionMap map[string]Region) {
 
 	fmt.Printf("Attempting to read %d \n", len(regionMap))
 
-	sortNodes()
+	sortedParentRegions := sortNodes(regionMap);
 
-	fmt.Printf("Level %s \n", "AUS")
-	fmt.Println(len(regionSetsMap), "len region sets map")
-	rootNode := regionMap["AUSAUS"]
-	node := getChild(rootNode)
+	rootNode := regionMap["AUS"]
+	node := getChild(rootNode, sortedParentRegions)
 
-	printRegion("AUS", node)
-
+	printRegion(name, node)
 
 }
 
-
-func getChild(root Region) Region {
+func getChild(root Region, parentMap map[string]map[string]Region) Region {
 	//fmt.Println(len(regionSetsMap))
 
-	children := regionSetsMap[root.LevelType+root.RegionID]
-
-	
-
+	children := parentMap[root.RegionID]
 	for i, c := range children {
-		root.ChildRegions[i] = getChild(c)
+		root.ChildRegions[i] = getChild(c, parentMap)
 	}
-
 	root.ChildRegions = children
-
-	return root;
+	return root
 }
 
-var tick int = 0
+func sortNodes(regionMap map[string]Region) map[string]map[string]Region{
 
-func sortNodes() {
+	parentMap := make(map[string]map[string]Region)
 
-	for _, region  := range regionMap {
+	for _, region := range regionMap {
 
-			for q, _ := range region.parentRegionID {
+		ipmap := parentMap[region.parentRegionID]
 
-				//childregion := regionSetsMap[level][pregion]
+		if(ipmap == nil){
+			ipmap = make(map[string]Region)
+		}
 
-				set := regionSetsMap[q]
-				if set == nil {
-					set = make(map[string]Region)
-					regionSetsMap[q] = set
-				}
-				
-				regionSetsMap[q][region.LevelType+region.RegionID] = region
-
-			}
-		
+		ipmap[region.RegionID] = region;
+		parentMap[region.parentRegionID] = ipmap;
 	}
+
+	return parentMap;
 
 }
 
@@ -340,7 +152,7 @@ func printRegion(id string, out Region) {
 
 	var jsonData []byte
 	jsonData, err = json.MarshalIndent(out, "", "\t")
-
+	//jsonData, err = json.Marshal(out)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(9)

@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -39,8 +40,10 @@ func main() {
 
 }
 
-func readCSV(file *os.File) map[string]Region {
+func readCSV(file *os.File) {
 
+	for name , levelSequence := range levelSequenceSets{
+	file.Seek(0, io.SeekStart)
 	br := bufio.NewReader(file)
 	r := csv.NewReader(br)
 
@@ -51,10 +54,10 @@ func readCSV(file *os.File) map[string]Region {
 
 	headMap := getHeaderMap(firstLine)
 
-	buildNodes(headMap, r)
-	buildTree()
+	buildNodes(name, headMap, r, levelSequence)
 
-	return nil
+
+	}
 
 }
 
